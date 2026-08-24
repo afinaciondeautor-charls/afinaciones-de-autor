@@ -232,7 +232,7 @@ export default function AdminRemisionQuoter({ appointment, onSaveAndSend, onCanc
     setItems((prev) => prev.filter((it) => it.id !== id));
   };
 
-  const handleSubmitWithWhatsApp = (openWhatsApp: boolean) => {
+  const handleSubmitAndSendAll = () => {
     const dualQuote: DualQuote = {
       agency: {
         title: `Opción Agencia (${appointment.vehicle.brand} OEM)`,
@@ -271,12 +271,25 @@ export default function AdminRemisionQuoter({ appointment, onSaveAndSend, onCanc
       remisionItems: items,
     };
 
+    // 1. Guardar en el sistema
     onSaveAndSend(dualQuote);
 
-    if (openWhatsApp) {
-      const waLink = getWhatsAppQuoteLink({ ...appointment, quote: dualQuote });
-      window.open(waLink, '_blank');
+    // 2. Enviar por correo al cliente si tiene email
+    if (appointment.client.email) {
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'dual_quote_proposal',
+          appointment: { ...appointment, quote: dualQuote },
+          quote: dualQuote,
+        }),
+      }).catch((err) => console.log('Error enviando correo de cotización:', err));
     }
+
+    // 3. Abrir WhatsApp con el mensaje preformateado
+    const waLink = getWhatsAppQuoteLink({ ...appointment, quote: dualQuote });
+    window.open(waLink, '_blank');
   };
 
   return (
@@ -639,26 +652,15 @@ export default function AdminRemisionQuoter({ appointment, onSaveAndSend, onCanc
           </div>
         </div>
 
-        {/* Botones Finales de Envío y Guardado */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-          {/* Botón Principal: Guardar y Abrir WhatsApp Web / App */}
+        {/* Botón Único Unificado: Guardar y Enviar */}
+        <div className="pt-2">
           <button
             type="button"
-            onClick={() => handleSubmitWithWhatsApp(true)}
-            className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-900/20 transition cursor-pointer transform active:scale-[0.99]"
+            onClick={handleSubmitAndSendAll}
+            className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm sm:text-base flex items-center justify-center gap-3 shadow-xl shadow-emerald-900/20 transition cursor-pointer transform active:scale-[0.99]"
           >
-            <MessageSquare className="w-5 h-5 text-white" />
-            <span>Guardar y Enviar por WhatsApp al Cliente</span>
-          </button>
-
-          {/* Botón Secundario: Solo Guardar */}
-          <button
-            type="button"
-            onClick={() => handleSubmitWithWhatsApp(false)}
-            className="w-full py-4 px-6 rounded-2xl bg-[#001E50] hover:bg-[#00509E] text-[#FFC72C] font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl shadow-blue-900/20 transition cursor-pointer transform active:scale-[0.99]"
-          >
-            <Send className="w-5 h-5 text-[#FFC72C]" />
-            <span>Guardar Nota en Sistema</span>
+            <Send className="w-5 h-5 text-white" />
+            <span>Guardar Cotización y Enviar (WhatsApp & Correo)</span>
           </button>
         </div>
       </div>

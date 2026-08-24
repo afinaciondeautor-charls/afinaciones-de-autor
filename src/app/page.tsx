@@ -27,8 +27,9 @@ export default function HomePage() {
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
   const [formData, setFormData] = useState<ClientFormData | null>(null);
   const [createdAppointmentId, setCreatedAppointmentId] = useState<string | null>(null);
+  const [localCreatedApt, setLocalCreatedApt] = useState<any>(null);
 
-  const createdAppointment = appointments.find((a) => a.id === createdAppointmentId);
+  const createdAppointment = appointments.find((a) => a.id === createdAppointmentId) || localCreatedApt;
 
   const handleStep1Submit = (data: ClientFormData) => {
     setFormData(data);
@@ -62,6 +63,15 @@ export default function HomePage() {
       status: 'solicitud_pendiente',
     });
 
+    const tempFolio = `ADA-2026-${Math.floor(100 + Math.random() * 900)}`;
+    setLocalCreatedApt({
+      id: newId,
+      folio: tempFolio,
+      client: { ...formData },
+      vehicle: { ...formData },
+      scheduledDate: date,
+      timeSlot: timeSlot,
+    });
     setCreatedAppointmentId(newId);
     setActiveStep(3);
   };

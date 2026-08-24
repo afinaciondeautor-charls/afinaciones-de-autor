@@ -91,17 +91,18 @@ export default function BookingCalendar({ onConfirm, onBack }: Props) {
     .filter((a) => a.scheduledDate === selectedDate && a.status !== 'cancelada')
     .map((a) => a.timeSlot);
 
-  // Auto select first available slot when date changes
+  // Auto select slot only when the selected date changes and current slot is no longer valid
   useEffect(() => {
-    const firstAvailable = activeSlots.find(
-      (s) => !bookedSlotsOnSelectedDate.includes(s.slot)
-    );
-    if (firstAvailable) {
-      setSelectedSlot(firstAvailable.slot);
-    } else {
-      setSelectedSlot('');
-    }
-  }, [selectedDate, scheduleSettings, appointments]);
+    setSelectedSlot((currentSlot) => {
+      if (currentSlot && !bookedSlotsOnSelectedDate.includes(currentSlot)) {
+        return currentSlot;
+      }
+      const firstAvailable = activeSlots.find(
+        (s) => !bookedSlotsOnSelectedDate.includes(s.slot)
+      );
+      return firstAvailable ? firstAvailable.slot : '';
+    });
+  }, [selectedDate]);
 
   // Selected date details
   const selectedDateParts = selectedDate.split('-').map(Number);

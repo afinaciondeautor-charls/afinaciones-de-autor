@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { Appointment } from '@/types';
+import { Appointment, DualQuote } from '@/types';
 
 const GMAIL_USER = process.env.GMAIL_USER || process.env.EMAIL_USER || '';
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || process.env.EMAIL_PASSWORD || '';
@@ -21,7 +21,7 @@ function getBaseUrl(): string {
 }
 
 /**
- * Plantilla de Correo 1: Confirmación de Solicitud de Cotización Recibida
+ * Plantilla 1: Confirmación de Solicitud de Cotización Recibida
  */
 export async function sendQuoteRequestEmail(appointment: Appointment) {
   if (!isEmailConfigured || !appointment.client.email) {
@@ -30,6 +30,23 @@ export async function sendQuoteRequestEmail(appointment: Appointment) {
   }
 
   const trackingUrl = `${getBaseUrl()}/seguimiento/${appointment.id}`;
+
+  const plainText = `Hola ${appointment.client.name},
+
+Hemos recibido con éxito tu solicitud de afinación para tu ${appointment.vehicle.brand} ${appointment.vehicle.model} (${appointment.vehicle.year}) con Folio ${appointment.folio}.
+
+Placas: ${appointment.vehicle.plates || 'S/P'}
+VIN: ${appointment.vehicle.vin}
+Fecha tentativa: ${appointment.scheduledDate} (${appointment.timeSlot})
+Dirección: ${appointment.client.address}
+
+Nuestro equipo técnico está cotizando las refacciones por VIN. En unos momentos recibirás tu presupuesto por WhatsApp (${appointment.client.phone}) y por este medio.
+
+Puedes consultar el estatus en vivo de tu solicitud en el siguiente enlace:
+${trackingUrl}
+
+Atentamente,
+Afinaciones de Autor - Mecánica Especializada a Domicilio`;
 
   const html = `
 <!DOCTYPE html>
@@ -88,7 +105,7 @@ export async function sendQuoteRequestEmail(appointment: Appointment) {
                       ¡Hola ${appointment.client.name}! 🚗
                     </h2>
                     <p style="font-size: 13px; line-height: 1.6; color: #475569; margin: 0 0 20px 0;">
-                      Hemos recibido con éxito tu solicitud para tu <strong>${appointment.vehicle.brand} ${appointment.vehicle.model} (${appointment.vehicle.year})</strong>. Nuestro equipo técnico maestro está revisando la especificación exacta de refacciones e insumos de acuerdo al número de serie de tu auto (VIN: <strong style="font-family: monospace;">${appointment.vehicle.vin}</strong>).
+                      Hemos recibido con éxito tu solicitud para tu <strong>${appointment.vehicle.brand} ${appointment.vehicle.model} (${appointment.vehicle.year})</strong>. Nuestro equipo técnico especializado está cotizando manualmente las refacciones correspondientes al número de serie de tu auto (VIN: <strong style="font-family: monospace;">${appointment.vehicle.vin}</strong>).
                     </p>
                   </td>
                 </tr>
@@ -110,7 +127,7 @@ export async function sendQuoteRequestEmail(appointment: Appointment) {
                         <td align="right" style="font-size: 12px; font-weight: 700; color: #0f172a; font-family: monospace; padding-bottom: 8px;">${appointment.scheduledDate} (${appointment.timeSlot})</td>
                       </tr>
                       <tr>
-                        <td style="font-size: 12px; color: #64748b;"><strong>Dirección de Atención:</strong></td>
+                        <td style="font-size: 12px; color: #64748b;"><strong>Dirección:</strong></td>
                         <td align="right" style="font-size: 12px; font-weight: 600; color: #0f172a;">${appointment.client.address}</td>
                       </tr>
                     </table>
@@ -159,16 +176,180 @@ export async function sendQuoteRequestEmail(appointment: Appointment) {
   try {
     const info = await transporter.sendMail({
       from: `"Afinaciones de Autor" <${GMAIL_USER}>`,
+      replyTo: GMAIL_USER,
       to: appointment.client.email,
-      bcc: GMAIL_USER, // Te envía copia automática a ti
-      subject: `🚘 Solicitud Recibida: ${appointment.vehicle.brand} ${appointment.vehicle.model} • Folio ${appointment.folio}`,
+      bcc: GMAIL_USER,
+      subject: `Solicitud Recibida: ${appointment.vehicle.brand} ${appointment.vehicle.model} • Folio ${appointment.folio}`,
+      text: plainText,
       html,
     });
 
-    console.log('Correo enviado con éxito:', info.messageId);
+    console.log('Correo de solicitud enviado con éxito:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('Error al enviar correo vía Gmail:', error);
+    return { success: false, error: String(error) };
+  }
+}
+
+/**
+ * Plantilla 2: Propuesta de Cotización Dual Lista para Autorizar
+ */
+export async function sendDualQuoteProposalEmail(appointment: Appointment, quote: DualQuote) {
+  if (!isEmailConfigured || !appointment.client.email) {
+    return { success: false, reason: 'unconfigured' };
+  }
+
+  const trackingUrl = `${getBaseUrl()}/seguimiento/${appointment.id}`;
+
+  const plainText = `Hola ${appointment.client.name},
+
+Tu cotización personalizada de Afinaciones de Autor para tu ${appointment.vehicle.brand} ${appointment.vehicle.model} (${appointment.vehicle.year}) está lista con Folio ${appointment.folio}.
+
+OPCIÓN 1: ${quote.agency.title} - $${quote.agency.price.toLocaleString()} MXN
+- Refacciones originales de concesionaria
+- Póliza de garantía de ${quote.agency.warrantyMonths} meses
+
+OPCIÓN 2: ${quote.premium.title} - $${quote.premium.price.toLocaleString()} MXN
+- Insumos de alto rendimiento (${quote.premium.partsBrand})
+- Garantía extendida por escrito de ${quote.premium.warrantyMonths} meses
+
+Puedes revisar el desglose y autorizar tu opción en 1-click en este enlace:
+${trackingUrl}
+
+Atentamente,
+Afinaciones de Autor`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cotización Lista - Afinaciones de Autor</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 25px 15px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card -->
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #08101E; padding: 30px 25px; text-align: center;">
+              <div style="display: inline-block; background: linear-gradient(135deg, #F59E0B, #D97706); color: #08101E; font-weight: 900; font-size: 16px; width: 44px; height: 44px; line-height: 44px; border-radius: 12px; text-align: center; margin-bottom: 12px;">
+                AA
+              </div>
+              <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800;">
+                AFINACIONES DE AUTOR
+              </h1>
+              <p style="color: #94a3b8; margin: 5px 0 0 0; font-size: 12px; font-family: monospace;">
+                Tu Cotización Personalizada por VIN está Lista
+              </p>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding: 30px 25px;">
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; margin-bottom: 24px; text-align: center;">
+                <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; font-family: monospace; display: block; margin-bottom: 4px;">
+                  Folio de Servicio
+                </span>
+                <strong style="font-size: 22px; font-weight: 900; color: #0f172a; font-family: monospace;">
+                  ${appointment.folio}
+                </strong>
+              </div>
+
+              <h2 style="font-size: 17px; font-weight: 800; color: #0f172a; margin: 0 0 10px 0;">
+                ¡Hola ${appointment.client.name}! 🚗
+              </h2>
+              <p style="font-size: 13px; line-height: 1.6; color: #475569; margin: 0 0 20px 0;">
+                Hemos preparado tu presupuesto detallado para tu <strong>${appointment.vehicle.brand} ${appointment.vehicle.model} (${appointment.vehicle.year})</strong>.
+              </p>
+
+              <!-- Opción 1: Agencia -->
+              <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 14px; padding: 18px; margin-bottom: 15px;">
+                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td>
+                      <span style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; font-family: monospace;">Opción 1</span>
+                      <h3 style="font-size: 15px; font-weight: 800; color: #0f172a; margin: 2px 0;">${quote.agency.title}</h3>
+                    </td>
+                    <td align="right">
+                      <strong style="font-size: 18px; font-weight: 900; color: #0f172a; font-family: monospace;">$${quote.agency.price.toLocaleString()} MXN</strong>
+                    </td>
+                  </tr>
+                </table>
+                <p style="font-size: 12px; color: #64748b; margin: 8px 0 0 0;">
+                  ${quote.agency.description} • Garantía por escrito de ${quote.agency.warrantyMonths} meses.
+                </p>
+              </div>
+
+              <!-- Opción 2: De Autor -->
+              <div style="background-color: #fffbeb; border: 2px solid #f59e0b; border-radius: 14px; padding: 18px; margin-bottom: 24px;">
+                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td>
+                      <span style="font-size: 10px; font-weight: 700; color: #d97706; text-transform: uppercase; font-family: monospace;">Opción 2 • Recomendada</span>
+                      <h3 style="font-size: 15px; font-weight: 800; color: #0f172a; margin: 2px 0;">${quote.premium.title}</h3>
+                    </td>
+                    <td align="right">
+                      <strong style="font-size: 18px; font-weight: 900; color: #b45309; font-family: monospace;">$${quote.premium.price.toLocaleString()} MXN</strong>
+                    </td>
+                  </tr>
+                </table>
+                <p style="font-size: 12px; color: #78350f; margin: 8px 0 0 0;">
+                  ${quote.premium.description} • Garantía extendida de ${quote.premium.warrantyMonths} meses.
+                </p>
+              </div>
+
+              <!-- Botón CTA -->
+              <div style="text-align: center; padding-bottom: 20px;">
+                <a href="${trackingUrl}" target="_blank" style="display: inline-block; background-color: #08101E; color: #F59E0B; font-weight: 800; font-size: 14px; text-decoration: none; padding: 15px 32px; border-radius: 14px; box-shadow: 0 4px 12px rgba(8, 16, 30, 0.25);">
+                  ⚡ Ver Desglose y Autorizar Opción en 1-Click
+                </a>
+              </div>
+
+              <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">
+                También puedes confirmar tu opción respondiendo al mensaje de WhatsApp que te enviamos.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 25px; text-align: center;">
+              <p style="font-size: 11px; color: #94a3b8; margin: 0;">
+                © 2026 Afinaciones de Autor • Taller Mecánico Móvil de Alto Rendimiento
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+
+  try {
+    const info = await transporter.sendMail({
+      from: `"Afinaciones de Autor" <${GMAIL_USER}>`,
+      replyTo: GMAIL_USER,
+      to: appointment.client.email,
+      bcc: GMAIL_USER,
+      subject: `Presupuesto Listo: ${appointment.vehicle.brand} ${appointment.vehicle.model} • Folio ${appointment.folio}`,
+      text: plainText,
+      html,
+    });
+
+    console.log('Correo de cotización enviado con éxito:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error al enviar correo de cotización:', error);
     return { success: false, error: String(error) };
   }
 }
