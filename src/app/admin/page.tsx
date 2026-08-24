@@ -42,7 +42,14 @@ import { Appointment } from '@/types';
 import Link from 'next/link';
 
 type AdminTab = 'cotizaciones' | 'agenda' | 'horarios' | 'contabilidad' | 'fidelizacion' | 'seguridad';
-type QuoteStatusFilterType = 'all' | 'pendientes' | 'enviadas' | 'aprobadas' | 'programadas' | 'reagendadas';
+type QuoteStatusFilterType =
+  | 'all'
+  | 'pendientes'
+  | 'enviadas'
+  | 'aprobadas'
+  | 'confirmadas'
+  | 'programadas'
+  | 'reagendadas';
 
 export default function AdminDashboardPage() {
   const {
@@ -64,8 +71,11 @@ export default function AdminDashboardPage() {
 
   // Counts by status
   const pendingQuotes = appointments.filter((a) => a.status === 'solicitud_pendiente');
-  const sentQuotes = appointments.filter((a) => a.status === 'cotizado');
-  const approvedQuotes = appointments.filter((a) => a.status === 'confirmada');
+  const sentQuotes = appointments.filter((a) => a.status === 'cotizado' && !a.selectedOption);
+  const approvedQuotes = appointments.filter(
+    (a) => a.status === 'aprobada_por_cliente' || (a.status === 'cotizado' && a.selectedOption)
+  );
+  const confirmedQuotes = appointments.filter((a) => a.status === 'confirmada');
   const inProgressQuotes = appointments.filter((a) => a.status === 'en_camino' || a.status === 'en_servicio');
   const rebookedQuotes = appointments.filter((a) => a.status === 'completada' || a.followUpStatus === 'rebooked');
   const activeBookings = appointments.filter((a) => a.status !== 'solicitud_pendiente');
@@ -96,8 +106,10 @@ export default function AdminDashboardPage() {
     if (!matchesSearch) return false;
 
     if (quoteFilter === 'pendientes') return apt.status === 'solicitud_pendiente';
-    if (quoteFilter === 'enviadas') return apt.status === 'cotizado';
-    if (quoteFilter === 'aprobadas') return apt.status === 'confirmada';
+    if (quoteFilter === 'enviadas') return apt.status === 'cotizado' && !apt.selectedOption;
+    if (quoteFilter === 'aprobadas')
+      return apt.status === 'aprobada_por_cliente' || (apt.status === 'cotizado' && !!apt.selectedOption);
+    if (quoteFilter === 'confirmadas') return apt.status === 'confirmada';
     if (quoteFilter === 'programadas') return apt.status === 'en_camino' || apt.status === 'en_servicio';
     if (quoteFilter === 'reagendadas') return apt.status === 'completada' || apt.followUpStatus === 'rebooked';
 
@@ -423,12 +435,25 @@ export default function AdminDashboardPage() {
                         onClick={() => setQuoteFilter('aprobadas')}
                         className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
                           quoteFilter === 'aprobadas'
+                            ? 'bg-amber-100 text-amber-950 border border-amber-300 font-bold'
+                            : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-amber-50/50'
+                        }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        <span>Aprobadas ({approvedQuotes.length})</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setQuoteFilter('confirmadas')}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                          quoteFilter === 'confirmadas'
                             ? 'bg-emerald-100 text-emerald-950 border border-emerald-300 font-bold'
                             : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-emerald-50/50'
                         }`}
                       >
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        <span>Aprobadas ({approvedQuotes.length})</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                        <span>Confirmadas ({confirmedQuotes.length})</span>
                       </button>
 
                       <button
@@ -496,8 +521,10 @@ export default function AdminDashboardPage() {
                     ) : (
                       filteredQuotes.map((apt) => {
                         const isPending = apt.status === 'solicitud_pendiente';
-                        const isSent = apt.status === 'cotizado';
-                        const isApproved = apt.status === 'confirmada';
+                        const isSent = apt.status === 'cotizado' && !apt.selectedOption;
+                        const isClientApproved =
+                          apt.status === 'aprobada_por_cliente' || (apt.status === 'cotizado' && !!apt.selectedOption);
+                        const isConfirmed = apt.status === 'confirmada';
                         const isInProgress = apt.status === 'en_camino' || apt.status === 'en_servicio';
                         const isCompleted = apt.status === 'completada';
 
@@ -523,9 +550,15 @@ export default function AdminDashboardPage() {
                                     Enviada al Cliente
                                   </span>
                                 )}
-                                {isApproved && (
-                                  <span className="text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200">
+                                {isClientApproved && (
+                                  <span className="text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-amber-100 text-amber-950 border border-amber-300 font-bold">
                                     Aprobada por Cliente
+                                  </span>
+                                )}
+                                {isConfirmed && (
+                                  <span className="text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-emerald-100 text-emerald-950 border border-emerald-300 font-bold flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                                    <span>Cita Confirmada</span>
                                   </span>
                                 )}
                                 {isInProgress && (
@@ -598,7 +631,7 @@ export default function AdminDashboardPage() {
 
                               <div className="flex flex-wrap items-center gap-2.5">
                                 {/* Botón Confirmar Cotización / Cita Oficial */}
-                                {apt.quote && (isPending || isSent || isApproved) && (
+                                {apt.quote && (isPending || isSent || isClientApproved) && (
                                   <button
                                     type="button"
                                     onClick={() => setSelectedAptForApproval(apt)}
@@ -606,7 +639,20 @@ export default function AdminDashboardPage() {
                                     title="Confirmar cita, asignar técnico y notificar al cliente"
                                   >
                                     <CheckCircle2 className="w-3.5 h-3.5 text-amber-300" />
-                                    <span>{isApproved ? 'Confirmar Cita & Notificar' : 'Confirmar / Aprobar Cita'}</span>
+                                    <span>{isClientApproved ? 'Confirmar Cita & Notificar' : 'Confirmar / Aprobar Cita'}</span>
+                                  </button>
+                                )}
+
+                                {/* Si ya está Confirmada, botón para reprogramar o re-notificar */}
+                                {isConfirmed && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedAptForApproval(apt)}
+                                    className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-2xs transition cursor-pointer active:scale-95"
+                                    title="Modificar fecha, cambiar técnico o re-notificar al cliente"
+                                  >
+                                    <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                                    <span>Reprogramar / Re-notificar</span>
                                   </button>
                                 )}
 

@@ -11,6 +11,7 @@ export type QuoteOptionType = 'agencia' | 'premium';
 export type AppointmentStatus =
   | 'solicitud_pendiente'
   | 'cotizado'
+  | 'aprobada_por_cliente'
   | 'confirmada'
   | 'en_camino'
   | 'en_servicio'
