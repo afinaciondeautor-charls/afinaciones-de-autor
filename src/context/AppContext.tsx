@@ -201,8 +201,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       status: 'solicitud_pendiente',
       scheduledDate: data.scheduledDate || new Date().toISOString().split('T')[0],
       timeSlot: data.timeSlot || '09:00 - 11:30',
-      technicianName: 'Pedro Almonte (Master Tech)',
-      technicianPhone: '+52 55 9876 5432',
+      technicianName: 'Por asignar al confirmar',
+      technicianPhone: '',
       paymentMethod: data.paymentMethod || 'online_card',
       paymentStatus: 'pending',
       cancellationPolicyAccepted: true,
@@ -256,6 +256,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newId = 'apt-' + Date.now();
     const newFolio = `ADA-2026-${Math.floor(100 + Math.random() * 900)}`;
 
+    const activeTech = securitySettings?.staffMembers?.find((m) => m.role === 'technician' && m.status === 'active') || {
+      name: 'Técnico Asignado de Autor',
+      phone: '+52 33 0000 0000',
+    };
+
     const newAppointment: Appointment = {
       id: newId,
       folio: newFolio,
@@ -284,8 +289,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       status: data.isApproved ? 'confirmada' : data.quote ? 'cotizado' : 'solicitud_pendiente',
       scheduledDate: data.scheduledDate || new Date().toISOString().split('T')[0],
       timeSlot: data.timeSlot || '09:00 - 11:30',
-      technicianName: 'Pedro Almonte (Master Tech)',
-      technicianPhone: '+52 55 9876 5432',
+      technicianName: data.isApproved ? activeTech.name : 'Por asignar al confirmar',
+      technicianPhone: data.isApproved ? activeTech.phone : '',
       paymentMethod: data.paymentMethod || 'on_site_card',
       paymentStatus: data.isApproved ? 'pending' : 'pending',
       cancellationPolicyAccepted: true,
@@ -343,6 +348,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     timeSlot: string,
     paymentMethod: Appointment['paymentMethod']
   ) => {
+    const activeTech = securitySettings?.staffMembers?.find((m) => m.role === 'technician' && m.status === 'active') || {
+      name: 'Técnico Especialista de Autor',
+      phone: '+52 33 0000 0000',
+    };
+
     setAppointments((prev) =>
       prev.map((apt) => {
         if (apt.id !== appointmentId) return apt;
@@ -351,6 +361,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           selectedOption,
           scheduledDate: date,
           timeSlot,
+          technicianName: activeTech.name,
+          technicianPhone: activeTech.phone,
           paymentMethod,
           paymentStatus: paymentMethod === 'online_card' ? 'paid' : 'pending',
           status: 'confirmada',

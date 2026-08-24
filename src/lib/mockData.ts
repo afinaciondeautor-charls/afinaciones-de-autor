@@ -29,22 +29,5 @@ export const INITIAL_SCHEDULE_SETTINGS: BusinessScheduleSettings = {
 export const INITIAL_SECURITY_SETTINGS: SecuritySettings = {
   adminPin: '123456',
   technicianPin: '123456',
-  staffMembers: [
-    {
-      id: 'staff-1',
-      name: 'Pedro Almonte',
-      phone: '+52 55 9876 5432',
-      role: 'admin',
-      status: 'active',
-      createdAt: '2026-08-20T10:00:00Z',
-    },
-    {
-      id: 'staff-2',
-      name: 'Carlos Ruiz (Master Tech)',
-      phone: '+52 55 8899 1122',
-      role: 'technician',
-      status: 'active',
-      createdAt: '2026-08-20T10:00:00Z',
-    },
-  ],
+  staffMembers: [],
 };
