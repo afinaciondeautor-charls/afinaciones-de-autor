@@ -1,0 +1,32 @@
+# Dependencies
+node_modules
+/.pnp
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Next.js build
+.next/
+out/
+build/
+dist/
+
+# Local server temp data
+.server_data/
+*.log
+
+# Environment variables
+.env*.local
+.env
+
+# OS Files
+.DS_Store
+*.pem
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
