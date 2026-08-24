@@ -356,8 +356,8 @@ export default function AdminDashboardPage() {
           {/* ======================================================== */}
           {activeTab === 'cotizaciones' && (
             <div className="space-y-6">
-              {/* Remisión Editor si está activo */}
-              {activeQuotingAptId && (
+              {/* Remisión Editor si está activo (Oculta la lista inferior para evitar confusiones) */}
+              {activeQuotingAptId ? (
                 <div className="scroll-mt-6" id="quoter-section">
                   {(() => {
                     const quotingApt = appointments.find((a) => a.id === activeQuotingAptId);
@@ -374,286 +374,288 @@ export default function AdminDashboardPage() {
                     );
                   })()}
                 </div>
-              )}
-
-              {/* Barra de Filtros y Búsqueda Limpia y Directa */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-slate-200/90 p-4 sm:p-5 rounded-2xl shadow-2xs">
-                {/* Pastillas de Estado */}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setQuoteFilter('all')}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                      quoteFilter === 'all'
-                        ? 'bg-slate-900 text-white shadow-2xs'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-                    }`}
-                  >
-                    Todas ({appointments.length})
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setQuoteFilter('pendientes')}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                      quoteFilter === 'pendientes'
-                        ? 'bg-amber-100 text-amber-950 border border-amber-300 font-bold'
-                        : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-amber-50/50'
-                    }`}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                    <span>Por Cotizar ({pendingQuotes.length})</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setQuoteFilter('enviadas')}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                      quoteFilter === 'enviadas'
-                        ? 'bg-blue-100 text-blue-950 border border-blue-300 font-bold'
-                        : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-blue-50/50'
-                    }`}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    <span>Enviadas ({sentQuotes.length})</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setQuoteFilter('aprobadas')}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                      quoteFilter === 'aprobadas'
-                        ? 'bg-emerald-100 text-emerald-950 border border-emerald-300 font-bold'
-                        : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-emerald-50/50'
-                    }`}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    <span>Aprobadas ({approvedQuotes.length})</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setQuoteFilter('programadas')}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                      quoteFilter === 'programadas'
-                        ? 'bg-slate-800 text-white font-bold'
-                        : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                    <span>En Sitio ({inProgressQuotes.length})</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setQuoteFilter('reagendadas')}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                      quoteFilter === 'reagendadas'
-                        ? 'bg-slate-800 text-white font-bold'
-                        : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                    <span>Finalizadas ({rebookedQuotes.length})</span>
-                  </button>
-                </div>
-
-                {/* Buscador */}
-                <div className="relative w-full sm:w-64">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Buscar placa o folio..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 focus:bg-white rounded-xl text-xs text-slate-800 focus:outline-hidden focus:border-slate-400 transition"
-                  />
-                </div>
-              </div>
-
-              {/* Lista de Cotizaciones en Cascada Vertical con Margen y Padding Generoso */}
-              <div className="space-y-4">
-                {filteredQuotes.length === 0 ? (
-                  <div className="bg-white border border-slate-200/90 rounded-2xl p-10 sm:p-12 text-center text-slate-500 space-y-3.5 shadow-2xs">
-                    <Inbox className="w-8 h-8 text-slate-300 mx-auto" />
-                    <div className="space-y-1">
-                      <h3 className="text-base font-bold text-slate-900">
-                        No hay cotizaciones con este filtro
-                      </h3>
-                      <p className="text-xs text-slate-500 max-w-md mx-auto">
-                        Puedes registrar una nueva cotización o agendar directamente un servicio que te hayan solicitado por llamada o WhatsApp.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowDirectServiceModal(true)}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer active:scale-95"
-                    >
-                      <Plus className="w-4 h-4 text-amber-400" />
-                      <span>+ Realizar Cotización / Nuevo Servicio Directo</span>
-                    </button>
-                  </div>
-                ) : (
-                  filteredQuotes.map((apt) => {
-                    const isPending = apt.status === 'solicitud_pendiente';
-                    const isSent = apt.status === 'cotizado';
-                    const isApproved = apt.status === 'confirmada';
-                    const isInProgress = apt.status === 'en_camino' || apt.status === 'en_servicio';
-                    const isCompleted = apt.status === 'completada';
-
-                    return (
-                      <div
-                        key={apt.id}
-                        className="bg-white border border-slate-200/90 hover:border-slate-300 rounded-2xl p-6 sm:p-7 shadow-2xs space-y-5 transition"
+              ) : (
+                <>
+                  {/* Barra de Filtros y Búsqueda Limpia y Directa */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-slate-200/90 p-4 sm:p-5 rounded-2xl shadow-2xs">
+                    {/* Pastillas de Estado */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setQuoteFilter('all')}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                          quoteFilter === 'all'
+                            ? 'bg-slate-900 text-white shadow-2xs'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                        }`}
                       >
-                        {/* Header de la tarjeta con margen balanceado */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                          <div className="flex items-center gap-2.5">
-                            <span className="font-mono font-bold text-xs bg-slate-100 text-slate-800 px-3 py-1 rounded-md border border-slate-200">
-                              {apt.folio}
-                            </span>
+                        Todas ({appointments.length})
+                      </button>
 
-                            {isPending && (
-                              <span className="text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200">
-                                Pendiente de Enviar
-                              </span>
-                            )}
-                            {isSent && (
-                              <span className="text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-blue-50 text-blue-900 border border-blue-200">
-                                Enviada al Cliente
-                              </span>
-                            )}
-                            {isApproved && (
-                              <span className="text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200">
-                                Aprobada por Cliente
-                              </span>
-                            )}
-                            {isInProgress && (
-                              <span className="text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-300">
-                                En Proceso / En Sitio
-                              </span>
-                            )}
-                            {isCompleted && (
-                              <span className="text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-300">
-                                Finalizada / Con Garantía
-                              </span>
-                            )}
-                          </div>
+                      <button
+                        type="button"
+                        onClick={() => setQuoteFilter('pendientes')}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                          quoteFilter === 'pendientes'
+                            ? 'bg-amber-100 text-amber-950 border border-amber-300 font-bold'
+                            : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-amber-50/50'
+                        }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        <span>Por Cotizar ({pendingQuotes.length})</span>
+                      </button>
 
-                          <div className="text-xs text-slate-500 font-mono">
-                            Fecha de Visita:{' '}
-                            <strong className="text-slate-800">
-                              {apt.scheduledDate} • {apt.timeSlot}
-                            </strong>
-                          </div>
+                      <button
+                        type="button"
+                        onClick={() => setQuoteFilter('enviadas')}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                          quoteFilter === 'enviadas'
+                            ? 'bg-blue-100 text-blue-950 border border-blue-300 font-bold'
+                            : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-blue-50/50'
+                        }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        <span>Enviadas ({sentQuotes.length})</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setQuoteFilter('aprobadas')}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                          quoteFilter === 'aprobadas'
+                            ? 'bg-emerald-100 text-emerald-950 border border-emerald-300 font-bold'
+                            : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-emerald-50/50'
+                        }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span>Aprobadas ({approvedQuotes.length})</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setQuoteFilter('programadas')}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                          quoteFilter === 'programadas'
+                            ? 'bg-slate-800 text-white font-bold'
+                            : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                        <span>En Sitio ({inProgressQuotes.length})</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setQuoteFilter('reagendadas')}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                          quoteFilter === 'reagendadas'
+                            ? 'bg-slate-800 text-white font-bold'
+                            : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                        <span>Finalizadas ({rebookedQuotes.length})</span>
+                      </button>
+                    </div>
+
+                    {/* Buscador */}
+                    <div className="relative w-full sm:w-64">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="Buscar placa o folio..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 focus:bg-white rounded-xl text-xs text-slate-800 focus:outline-hidden focus:border-slate-400 transition"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Lista de Cotizaciones en Cascada Vertical con Margen y Padding Generoso */}
+                  <div className="space-y-4">
+                    {filteredQuotes.length === 0 ? (
+                      <div className="bg-white border border-slate-200/90 rounded-2xl p-10 sm:p-12 text-center text-slate-500 space-y-3.5 shadow-2xs">
+                        <Inbox className="w-8 h-8 text-slate-300 mx-auto" />
+                        <div className="space-y-1">
+                          <h3 className="text-base font-bold text-slate-900">
+                            No hay cotizaciones con este filtro
+                          </h3>
+                          <p className="text-xs text-slate-500 max-w-md mx-auto">
+                            Puedes registrar una nueva cotización o agendar directamente un servicio que te hayan solicitado por llamada o WhatsApp.
+                          </p>
                         </div>
-
-                        {/* Datos del Cliente y Vehículo con padding y márgenes limpios */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 text-xs py-1">
-                          <div className="space-y-1">
-                            <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Cliente & Contacto:</span>
-                            <strong className="text-slate-900 text-sm block">{apt.client.name}</strong>
-                            <span className="text-slate-600 block">{apt.client.phone}</span>
-                            <span className="text-slate-500 block">{apt.client.email}</span>
-                          </div>
-
-                          <div className="space-y-1">
-                            <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Vehículo Registrado:</span>
-                            <strong className="text-slate-900 text-sm block">
-                              {apt.vehicle.brand} {apt.vehicle.model} ({apt.vehicle.year})
-                            </strong>
-                            <span className="font-mono text-slate-600 block">Placas: {apt.vehicle.plates}</span>
-                            <span className="font-mono text-slate-700 block text-[11px]">VIN: {apt.vehicle.vin}</span>
-                          </div>
-
-                          <div className="space-y-1">
-                            <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Ubicación de Visita:</span>
-                            <p className="text-slate-800 font-medium leading-relaxed">{apt.client.address}</p>
-                            {apt.client.referenceNotes && (
-                              <p className="text-slate-500 italic text-[11px] mt-1">
-                                Ref: {apt.client.referenceNotes}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Botones de Acción de Cotización con margen superior */}
-                        <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-slate-100">
-                          <div>
-                            {apt.quote && (
-                              <div className="flex items-center gap-3 text-xs font-mono">
-                                <span>Agencia OEM: <strong className="text-slate-900 font-bold">${apt.quote.agency.price.toLocaleString()}</strong></span>
-                                <span className="text-slate-300">|</span>
-                                <span>De Autor: <strong className="text-slate-900 font-bold">${apt.quote.premium.price.toLocaleString()}</strong></span>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-2.5">
-                            {/* Botón Confirmar Cotización / Cita Oficial */}
-                            {apt.quote && (isPending || isSent || isApproved) && (
-                              <button
-                                type="button"
-                                onClick={() => setSelectedAptForApproval(apt)}
-                                className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-2xs transition cursor-pointer active:scale-95"
-                                title="Confirmar cita, asignar técnico y notificar al cliente"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5 text-amber-300" />
-                                <span>{isApproved ? 'Confirmar Cita & Notificar' : 'Confirmar / Aprobar Cita'}</span>
-                              </button>
-                            )}
-
-                            {/* Botón WhatsApp */}
-                            {apt.quote && (
-                              <a
-                                href={getWhatsAppQuoteLink(apt)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-2xs transition cursor-pointer active:scale-95"
-                                title="Enviar cotización por WhatsApp"
-                              >
-                                <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-                                <span>Enviar por WhatsApp</span>
-                              </a>
-                            )}
-
-                            {/* Botón Abrir / Editar Remisión */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveQuotingAptId(apt.id);
-                                setTimeout(() => {
-                                  document.getElementById('quoter-section')?.scrollIntoView({ behavior: 'smooth' });
-                                }, 50);
-                              }}
-                              className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
-                                isPending
-                                  ? 'bg-[#08101E] hover:bg-slate-800 text-white shadow-2xs'
-                                  : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200'
-                              }`}
-                            >
-                              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                              <span>{isPending ? 'Elaborar Cotización' : 'Modificar Cotización'}</span>
-                            </button>
-
-                            {/* Reporte si está completada */}
-                            {apt.status === 'completada' && (
-                              <button
-                                type="button"
-                                onClick={() => setSelectedAppointmentForReport(apt)}
-                                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-2xs cursor-pointer"
-                              >
-                                <FileText className="w-3.5 h-3.5 text-slate-300" />
-                                <span>Reporte PDF</span>
-                              </button>
-                            )}
-                          </div>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowDirectServiceModal(true)}
+                          className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer active:scale-95"
+                        >
+                          <Plus className="w-4 h-4 text-amber-400" />
+                          <span>+ Realizar Cotización / Nuevo Servicio Directo</span>
+                        </button>
                       </div>
-                    );
-                  })
-                )}
-              </div>
+                    ) : (
+                      filteredQuotes.map((apt) => {
+                        const isPending = apt.status === 'solicitud_pendiente';
+                        const isSent = apt.status === 'cotizado';
+                        const isApproved = apt.status === 'confirmada';
+                        const isInProgress = apt.status === 'en_camino' || apt.status === 'en_servicio';
+                        const isCompleted = apt.status === 'completada';
+
+                        return (
+                          <div
+                            key={apt.id}
+                            className="bg-white border border-slate-200/90 hover:border-slate-300 rounded-2xl p-6 sm:p-7 shadow-2xs space-y-5 transition"
+                          >
+                            {/* Header de la tarjeta con margen balanceado */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                              <div className="flex items-center gap-2.5">
+                                <span className="font-mono font-bold text-xs bg-slate-100 text-slate-800 px-3 py-1 rounded-md border border-slate-200">
+                                  {apt.folio}
+                                </span>
+
+                                {isPending && (
+                                  <span className="text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200">
+                                    Pendiente de Enviar
+                                  </span>
+                                )}
+                                {isSent && (
+                                  <span className="text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-blue-50 text-blue-900 border border-blue-200">
+                                    Enviada al Cliente
+                                  </span>
+                                )}
+                                {isApproved && (
+                                  <span className="text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200">
+                                    Aprobada por Cliente
+                                  </span>
+                                )}
+                                {isInProgress && (
+                                  <span className="text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-300">
+                                    En Proceso / En Sitio
+                                  </span>
+                                )}
+                                {isCompleted && (
+                                  <span className="text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-300">
+                                    Finalizada / Con Garantía
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="text-xs text-slate-500 font-mono">
+                                Fecha de Visita:{' '}
+                                <strong className="text-slate-800">
+                                  {apt.scheduledDate} • {apt.timeSlot}
+                                </strong>
+                              </div>
+                            </div>
+
+                            {/* Datos del Cliente y Vehículo con padding y márgenes limpios */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 text-xs py-1">
+                              <div className="space-y-1">
+                                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Cliente & Contacto:</span>
+                                <strong className="text-slate-900 text-sm block">{apt.client.name}</strong>
+                                <span className="text-slate-600 block">{apt.client.phone}</span>
+                                <span className="text-slate-500 block">{apt.client.email}</span>
+                              </div>
+
+                              <div className="space-y-1">
+                                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Vehículo Registrado:</span>
+                                <strong className="text-slate-900 text-sm block">
+                                  {apt.vehicle.brand} {apt.vehicle.model} ({apt.vehicle.year})
+                                </strong>
+                                <span className="font-mono text-slate-600 block">Placas: {apt.vehicle.plates}</span>
+                                <span className="font-mono text-slate-700 block text-[11px]">VIN: {apt.vehicle.vin}</span>
+                              </div>
+
+                              <div className="space-y-1">
+                                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Ubicación de Visita:</span>
+                                <p className="text-slate-800 font-medium leading-relaxed">{apt.client.address}</p>
+                                {apt.client.referenceNotes && (
+                                  <p className="text-slate-500 italic text-[11px] mt-1">
+                                    Ref: {apt.client.referenceNotes}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Botones de Acción de Cotización con margen superior */}
+                            <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-slate-100">
+                              <div>
+                                {apt.quote && (
+                                  <div className="flex items-center gap-3 text-xs font-mono">
+                                    <span>Agencia OEM: <strong className="text-slate-900 font-bold">${apt.quote.agency.price.toLocaleString()}</strong></span>
+                                    <span className="text-slate-300">|</span>
+                                    <span>De Autor: <strong className="text-slate-900 font-bold">${apt.quote.premium.price.toLocaleString()}</strong></span>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-2.5">
+                                {/* Botón Confirmar Cotización / Cita Oficial */}
+                                {apt.quote && (isPending || isSent || isApproved) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedAptForApproval(apt)}
+                                    className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-2xs transition cursor-pointer active:scale-95"
+                                    title="Confirmar cita, asignar técnico y notificar al cliente"
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-amber-300" />
+                                    <span>{isApproved ? 'Confirmar Cita & Notificar' : 'Confirmar / Aprobar Cita'}</span>
+                                  </button>
+                                )}
+
+                                {/* Botón WhatsApp */}
+                                {apt.quote && (
+                                  <a
+                                    href={getWhatsAppQuoteLink(apt)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-2xs transition cursor-pointer active:scale-95"
+                                    title="Enviar cotización por WhatsApp"
+                                  >
+                                    <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                                    <span>Enviar por WhatsApp</span>
+                                  </a>
+                                )}
+
+                                {/* Botón Abrir / Editar Remisión */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveQuotingAptId(apt.id);
+                                    setTimeout(() => {
+                                      document.getElementById('quoter-section')?.scrollIntoView({ behavior: 'smooth' });
+                                    }, 50);
+                                  }}
+                                  className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
+                                    isPending
+                                      ? 'bg-[#08101E] hover:bg-slate-800 text-white shadow-2xs'
+                                      : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200'
+                                  }`}
+                                >
+                                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                                  <span>{isPending ? 'Elaborar Cotización' : 'Modificar Cotización'}</span>
+                                </button>
+
+                                {/* Reporte si está completada */}
+                                {apt.status === 'completada' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedAppointmentForReport(apt)}
+                                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-2xs cursor-pointer"
+                                  >
+                                    <FileText className="w-3.5 h-3.5 text-slate-300" />
+                                    <span>Reporte PDF</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
