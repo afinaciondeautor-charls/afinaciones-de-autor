@@ -119,14 +119,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const fetchInitial = async () => {
       const sanitizeAppointments = (list: Appointment[]) => {
         return list.map((apt) => {
-          if (
-            apt.client?.name?.toLowerCase().includes('emili') &&
-            apt.status === 'confirmada' &&
-            (!apt.technicianName ||
-              apt.technicianName.includes('Especialista') ||
-              apt.technicianName.includes('Pedro') ||
-              apt.technicianName.includes('asignar'))
-          ) {
+          if (apt.status === 'confirmada') {
             return { ...apt, status: 'aprobada_por_cliente' as AppointmentStatus };
           }
           return apt;
@@ -164,24 +157,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const res = await fetch('/api/app-state');
         if (res.ok) {
           const data = await res.json();
-          if (data.appointments) {
-            setAppointments((prev) => {
-              const sanitized = data.appointments.map((apt: Appointment) => {
-                if (
-                  apt.client?.name?.toLowerCase().includes('emili') &&
-                  apt.status === 'confirmada' &&
-                  (!apt.technicianName ||
-                    apt.technicianName.includes('Especialista') ||
-                    apt.technicianName.includes('Pedro') ||
-                    apt.technicianName.includes('asignar'))
-                ) {
-                  return { ...apt, status: 'aprobada_por_cliente' as AppointmentStatus };
-                }
-                return apt;
-              });
-              return sanitized;
-            });
-          }
+          if (data.appointments) setAppointments(data.appointments);
           if (data.notifications) setNotifications(data.notifications);
           if (data.scheduleSettings) setScheduleSettings(data.scheduleSettings);
           if (data.securitySettings) setSecuritySettings(data.securitySettings);
