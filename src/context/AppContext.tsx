@@ -230,6 +230,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       message: `Confirmamos la recepción de tu vehículo ${newAppointment.vehicle.brand} ${newAppointment.vehicle.model} con placas ${newAppointment.vehicle.plates} y VIN ${newAppointment.vehicle.vin}.`,
     });
 
+    if (typeof window !== 'undefined' && newAppointment.client.email) {
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appointment: newAppointment }),
+      }).catch((e) => console.log('Email trigger error:', e));
+    }
+
     return newId;
   };
 
