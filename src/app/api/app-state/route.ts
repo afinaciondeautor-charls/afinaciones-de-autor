@@ -15,6 +15,9 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import fs from 'fs';
 import path from 'path';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface ServerState {
   appointments: Appointment[];
   notifications: NotificationLog[];
