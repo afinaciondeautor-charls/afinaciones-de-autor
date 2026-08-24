@@ -49,11 +49,28 @@ export default function TechnicianPage() {
   const [activeTab, setActiveTab] = useState<TechnicianTab>('ruta');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isExecutingAptId, setIsExecutingAptId] = useState<string | null>(null);
+  const [routeFilter, setRouteFilter] = useState<'today' | 'upcoming' | 'all'>('today');
 
   // Filtrar citas asignadas para campo
   const activeAppointments = appointments.filter(
-    (a) => a.status !== 'solicitud_pendiente'
+    (a) => a.status !== 'solicitud_pendiente' && a.status !== 'cotizado' && a.status !== 'aprobada_por_cliente'
   );
+
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  const todayAppointments = activeAppointments.filter(
+    (a) => a.scheduledDate === todayStr || a.status === 'en_camino' || a.status === 'en_servicio'
+  );
+  const upcomingAppointments = activeAppointments.filter(
+    (a) => a.scheduledDate !== todayStr && a.status !== 'en_camino' && a.status !== 'en_servicio' && a.status !== 'completada'
+  );
+
+  const displayedRouteAppointments =
+    routeFilter === 'today'
+      ? todayAppointments
+      : routeFilter === 'upcoming'
+      ? upcomingAppointments
+      : activeAppointments;
 
   const scheduledServices = activeAppointments.filter(
     (a) => a.status === 'confirmada' || a.status === 'en_camino'
@@ -404,34 +421,82 @@ export default function TechnicianPage() {
           {/* ======================================================== */}
           {activeTab === 'ruta' && !isExecutingAptId && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between bg-white border border-slate-200/90 p-5 rounded-2xl shadow-2xs">
-                <div>
-                  <h2 className="text-sm font-bold text-slate-900">
-                    Itinerario y Paradas de Hoy
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Orden cronológico de domicilios asignados para tu jornada.
-                  </p>
+              {/* Header de Itinerario con Filtros por Fecha */}
+              <div className="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-2xs space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h2 className="text-sm font-bold text-slate-900">
+                      Itinerario de Servicios Asignados
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Organiza tus traslados y citas por fecha y horario.
+                    </p>
+                  </div>
+                  <span className="text-xs font-mono font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-lg border border-slate-200 w-fit">
+                    Hoy: {new Date().toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })}
+                  </span>
                 </div>
-                <span className="text-xs font-mono font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-lg border border-slate-200">
-                  {activeAppointments.length} paradas
-                </span>
+
+                {/* Filtros de Pestañas Rápidas para el Técnico */}
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setRouteFilter('today')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                      routeFilter === 'today'
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Ruta de Hoy ({todayAppointments.length})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRouteFilter('upcoming')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                      routeFilter === 'upcoming'
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    <Clock className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Próximos Días ({upcomingAppointments.length})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRouteFilter('all')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                      routeFilter === 'all'
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    <span>Todas ({activeAppointments.length})</span>
+                  </button>
+                </div>
               </div>
 
               {/* Lista de Paradas */}
-              {activeAppointments.length === 0 ? (
+              {displayedRouteAppointments.length === 0 ? (
                 <div className="bg-white border border-slate-200/90 rounded-2xl p-12 text-center text-slate-500 space-y-2">
                   <Navigation className="w-8 h-8 text-slate-400 mx-auto" />
                   <h3 className="text-sm font-bold text-slate-800">
-                    No tienes servicios programados para hoy
+                    {routeFilter === 'today'
+                      ? 'No tienes servicios programados para el día de hoy'
+                      : 'No hay servicios en esta vista'}
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Las nuevas citas confirmadas por el cliente aparecerán aquí en orden de horario.
+                    {routeFilter === 'today'
+                      ? 'Revisa la pestaña "Próximos Días" para consultar tus citas agendadas de la semana.'
+                      : 'Las nuevas citas confirmadas por el cliente aparecerán aquí.'}
                   </p>
                 </div>
               ) : (
                 <div className="space-y-3.5">
-                  {activeAppointments.map((apt, index) => {
+                  {displayedRouteAppointments.map((apt, index) => {
                     const isCompleted = apt.status === 'completada';
                     const isInService = apt.status === 'en_servicio';
                     const isEnRoute = apt.status === 'en_camino';
@@ -456,19 +521,23 @@ export default function TechnicianPage() {
                             </span>
 
                             <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono font-bold text-xs text-slate-900">
-                                  {apt.timeSlot}
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-mono font-bold text-xs bg-slate-100 text-slate-900 px-2.5 py-1 rounded-md border border-slate-200 flex items-center gap-1.5">
+                                  <Calendar className="w-3.5 h-3.5 text-[#00509E]" />
+                                  <span>{apt.scheduledDate}</span>
+                                  <span className="text-slate-400">•</span>
+                                  <span>{apt.timeSlot}</span>
                                 </span>
+
                                 <span
                                   className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full ${
                                     isCompleted
                                       ? 'bg-slate-100 text-slate-800 border border-slate-300'
                                       : isInService
-                                      ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
+                                      ? 'bg-emerald-50 text-emerald-900 border border-emerald-200 animate-pulse'
                                       : isEnRoute
-                                      ? 'bg-blue-50 text-blue-900 border border-blue-200'
-                                      : 'bg-slate-100 text-slate-700 border border-slate-200'
+                                      ? 'bg-amber-100 text-amber-950 border border-amber-300 animate-pulse'
+                                      : 'bg-blue-50 text-blue-950 border border-blue-200'
                                   }`}
                                 >
                                   {isCompleted
@@ -477,11 +546,11 @@ export default function TechnicianPage() {
                                     ? '🟢 En Servicio'
                                     : isEnRoute
                                     ? '🚗 En Camino'
-                                    : 'Programada'}
+                                    : '📋 Programada'}
                                 </span>
                               </div>
 
-                              <h3 className="text-sm font-bold text-slate-900 mt-0.5">
+                              <h3 className="text-sm font-bold text-slate-900 mt-1.5">
                                 {apt.vehicle.brand} {apt.vehicle.model} ({apt.vehicle.year})
                               </h3>
                             </div>
@@ -501,7 +570,7 @@ export default function TechnicianPage() {
                           </div>
 
                           <div>
-                            <span className="text-slate-400 text-[10px] uppercase font-bold block">Ubicación:</span>
+                            <span className="text-slate-400 text-[10px] uppercase font-bold block">Ubicación de Visita:</span>
                             <p className="text-slate-800 font-medium">{apt.client.address}</p>
                             {apt.client.referenceNotes && (
                               <p className="text-slate-500 italic text-[11px] mt-0.5">
@@ -523,18 +592,20 @@ export default function TechnicianPage() {
                               className="py-2 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition border border-slate-200"
                             >
                               <Navigation className="w-3.5 h-3.5 text-slate-600" />
-                              <span>GPS / Waze</span>
+                              <span>GPS / Maps</span>
                             </a>
 
-                            <button
-                              type="button"
-                              onClick={() => handleStartRouteAndNotify(apt)}
-                              className="py-2 px-3.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-2xs cursor-pointer active:scale-95"
-                              title="Iniciar traslado y avisar por WhatsApp"
-                            >
-                              <MessageSquare className="w-3.5 h-3.5 text-emerald-300" />
-                              <span>Avisar en Camino</span>
-                            </button>
+                            {isPending && (
+                              <button
+                                type="button"
+                                onClick={() => handleStartRouteAndNotify(apt)}
+                                className="py-2 px-3.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-2xs cursor-pointer active:scale-95"
+                                title="Iniciar traslado y avisar por WhatsApp"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5 text-emerald-300" />
+                                <span>Avisar en Camino</span>
+                              </button>
+                            )}
                           </div>
 
                           {/* Botón de Flujo Operativo */}
@@ -563,25 +634,37 @@ export default function TechnicianPage() {
                                 <span>Ver Reporte PDF</span>
                               </button>
                             </div>
-                          ) : isPending ? (
-                            <button
-                              type="button"
-                              onClick={() => handleStartRoute(apt.id)}
-                              className="py-2 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer transition"
-                            >
-                              <Play className="w-3.5 h-3.5 text-emerald-400" />
-                              <span>Iniciar Traslado</span>
-                            </button>
-                          ) : (
+                          ) : isEnRoute ? (
+                            /* BOTÓN PROMINENTE CUANDO EL TÉCNICO VA EN CAMINO: YA LLEGUÉ */
                             <button
                               type="button"
                               onClick={() => {
                                 setIsExecutingAptId(apt.id);
                               }}
-                              className="py-2 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                              className="py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center gap-2 shadow-md cursor-pointer transition active:scale-95 animate-pulse"
                             >
-                              <Clock className="w-3.5 h-3.5 text-amber-400" />
-                              <span>{isInService ? 'Continuar Servicio' : 'Ver Llegada'}</span>
+                              <MapPin className="w-4 h-4 text-white" />
+                              <span>📍 ¡Ya Llegué! • Iniciar Servicio</span>
+                            </button>
+                          ) : isInService ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsExecutingAptId(apt.id);
+                              }}
+                              className="py-2.5 px-5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-2xs cursor-pointer"
+                            >
+                              <Wrench className="w-4 h-4 text-amber-400" />
+                              <span>Continuar Trabajo & Evidencias</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleStartRouteAndNotify(apt)}
+                              className="py-2 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer transition active:scale-95"
+                            >
+                              <Play className="w-3.5 h-3.5 text-emerald-400" />
+                              <span>Iniciar Traslado</span>
                             </button>
                           )}
                         </div>
@@ -657,15 +740,24 @@ export default function TechnicianPage() {
 
                 {/* PASO 2: LLEGADA Y CONFIRMAR ODÓMETRO */}
                 {status === 'en_camino' && (
-                  <div className="p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-3.5">
-                    <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
-                      <MapPin className="w-4 h-4 text-rose-500" />
-                      <span>Has llegado al Domicilio del Cliente</span>
+                  <div className="p-6 bg-blue-50/70 border-2 border-blue-300 rounded-2xl space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#00509E] text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                        <MapPin className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-black text-slate-900">
+                          ¿Llegaste al Domicilio del Cliente?
+                        </h3>
+                        <p className="text-xs text-slate-600">
+                          {currentAppointment.client.address}
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <label className="block text-xs font-bold text-slate-700">
-                        Captura el Kilometraje Actual del Odómetro:
+                    <div className="space-y-1.5 pt-1">
+                      <label className="block text-xs font-bold text-slate-800">
+                        Kilometraje Inicial del Odómetro (Garantía por VIN):
                       </label>
                       <div className="relative">
                         <Gauge className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -674,7 +766,7 @@ export default function TechnicianPage() {
                           placeholder="ej. 42350"
                           value={initialKmInput}
                           onChange={(e) => setInitialKmInput(e.target.value)}
-                          className="w-full bg-white border border-slate-300 focus:border-slate-500 rounded-xl pl-9 pr-4 py-2 text-sm font-bold font-mono text-slate-900 focus:outline-hidden"
+                          className="w-full bg-white border border-slate-300 focus:border-slate-500 rounded-xl pl-9 pr-4 py-3 text-sm font-bold font-mono text-slate-900 focus:outline-hidden"
                         />
                       </div>
                     </div>
@@ -682,10 +774,10 @@ export default function TechnicianPage() {
                     <button
                       type="button"
                       onClick={handleStartService}
-                      className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs cursor-pointer transition"
+                      className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-xl flex items-center justify-center gap-2 shadow-md transition cursor-pointer active:scale-95"
                     >
-                      <Check className="w-4 h-4" />
-                      <span>Confirmar Llegada e Iniciar Trabajo</span>
+                      <Play className="w-5 h-5" />
+                      <span>📍 ¡Confirmar Llegada e Iniciar Servicio!</span>
                     </button>
                   </div>
                 )}
