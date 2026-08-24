@@ -27,10 +27,19 @@ export function getAppBaseUrl(): string {
 }
 
 /**
+ * Helper para armar URL universal y compatible de WhatsApp
+ */
+function buildWhatsAppUrl(phone: string, text: string): string {
+  const cleanPhone = formatWhatsAppPhone(phone);
+  // encodeURIComponent con normalización UTF-8 para garantizar render de emojis
+  const encodedText = encodeURIComponent(text);
+  return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
+}
+
+/**
  * Genera el enlace de WhatsApp para enviar la Cotización Dual al cliente
  */
 export function getWhatsAppQuoteLink(appointment: Appointment): string {
-  const phone = formatWhatsAppPhone(appointment.client.phone);
   const baseUrl = getAppBaseUrl();
   const trackingUrl = `${baseUrl}/seguimiento/${appointment.id}`;
 
@@ -67,26 +76,25 @@ Hemos preparado las opciones para tu atención a domicilio:
 
 Quedamos atentos a cualquier duda o ajuste en tu fecha y horario preferido.`;
 
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  return buildWhatsAppUrl(appointment.client.phone, message);
 }
 
 /**
  * Genera el enlace de WhatsApp para Confirmación Oficial de Cita al cliente
  */
 export function getWhatsAppBookingConfirmationLink(appointment: Appointment): string {
-  const phone = formatWhatsAppPhone(appointment.client.phone);
   const baseUrl = getAppBaseUrl();
   const trackingUrl = `${baseUrl}/seguimiento/${appointment.id}`;
 
-  const message = `¡Hola *${appointment.client.name.trim()}*! 🚗✅
+  const message = `¡Hola *${appointment.client.name.trim()}*! 🚗 ✅
 
 Tu cita de servicio con *Afinaciones de Autor* ha quedado *CONFIRMADA*.
 
 📋 *Folio:* ${appointment.folio}
 🚘 *Vehículo:* ${appointment.vehicle.brand} ${appointment.vehicle.model} (${appointment.vehicle.year}) • Placas: ${appointment.vehicle.plates || 'S/P'}
 📅 *Fecha:* ${appointment.scheduledDate}
-🕒 *Horario de Visita:* ${appointment.timeSlot}
-🧑‍🔧 *Técnico Asignado:* ${appointment.technicianName} ${appointment.technicianPhone ? '(' + appointment.technicianPhone + ')' : ''}
+⏰ *Horario de Visita:* ${appointment.timeSlot}
+🔧 *Técnico Asignado:* ${appointment.technicianName} ${appointment.technicianPhone ? '(' + appointment.technicianPhone + ')' : ''}
 📍 *Dirección:* ${appointment.client.address}
 
 🔍 Puedes ver los detalles y el estatus de tu unidad móvil en vivo aquí:
@@ -94,39 +102,37 @@ Tu cita de servicio con *Afinaciones de Autor* ha quedado *CONFIRMADA*.
 
 ¡Gracias por confiar en Afinaciones de Autor!`;
 
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  return buildWhatsAppUrl(appointment.client.phone, message);
 }
 
 /**
  * Genera el enlace de WhatsApp cuando el técnico va en camino
  */
 export function getWhatsAppEnRouteLink(appointment: Appointment): string {
-  const phone = formatWhatsAppPhone(appointment.client.phone);
   const baseUrl = getAppBaseUrl();
   const trackingUrl = `${baseUrl}/seguimiento/${appointment.id}`;
 
-  const message = `¡Hola *${appointment.client.name.trim()}*! 🚗💨
+  const message = `¡Hola *${appointment.client.name.trim()}*! 🚗 💨
 
 Tu técnico especialista de *Afinaciones de Autor* (${appointment.technicianName}) acaba de iniciar el traslado hacia tu domicilio.
 
 📍 *Destino:* ${appointment.client.address}
-🕒 *Tiempo Estimado de Llegada:* 25 - 35 minutos
+⏰ *Tiempo Estimado de Llegada:* 25 - 35 minutos
 
 🔍 Sigue la unidad móvil en vivo aquí:
 👉 ${trackingUrl}`;
 
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  return buildWhatsAppUrl(appointment.client.phone, message);
 }
 
 /**
  * Genera el enlace de WhatsApp cuando el servicio ha finalizado con Reporte Técnico
  */
 export function getWhatsAppCompletedLink(appointment: Appointment): string {
-  const phone = formatWhatsAppPhone(appointment.client.phone);
   const baseUrl = getAppBaseUrl();
   const trackingUrl = `${baseUrl}/seguimiento/${appointment.id}`;
 
-  const message = `¡Hola *${appointment.client.name.trim()}*! 🚗🎉
+  const message = `¡Hola *${appointment.client.name.trim()}*! 🚗 🎉
 
 El servicio de afinación para tu *${appointment.vehicle.brand} ${appointment.vehicle.model}* ha finalizado con éxito.
 
@@ -137,5 +143,5 @@ El servicio de afinación para tu *${appointment.vehicle.brand} ${appointment.ve
 
 ¡Gracias por elegir la precisión de Afinaciones de Autor!`;
 
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  return buildWhatsAppUrl(appointment.client.phone, message);
 }
