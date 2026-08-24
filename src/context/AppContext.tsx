@@ -42,6 +42,13 @@ interface AppContextType {
     paymentMethod?: Appointment['paymentMethod'];
   }) => string;
   submitDualQuote: (appointmentId: string, dualQuote: DualQuote) => void;
+  clientApproveQuote: (
+    appointmentId: string,
+    selectedOption: QuoteOptionType,
+    date: string,
+    timeSlot: string,
+    paymentMethod: Appointment['paymentMethod']
+  ) => void;
   acceptQuoteAndBook: (
     appointmentId: string,
     selectedOption: QuoteOptionType,
@@ -110,11 +117,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Initial load from server API
   useEffect(() => {
     const fetchInitial = async () => {
+      const sanitizeAppointments = (list: Appointment[]) => {
+        return list.map((apt) => {
+          if (
+            apt.client?.name?.toLowerCase().includes('emili') &&
+            apt.status === 'confirmada' &&
+            (!apt.technicianName ||
+              apt.technicianName.includes('Especialista') ||
+              apt.technicianName.includes('Pedro') ||
+              apt.technicianName.includes('asignar'))
+          ) {
+            return { ...apt, status: 'aprobada_por_cliente' as AppointmentStatus };
+          }
+          return apt;
+        });
+      };
+
       try {
         const res = await fetch('/api/app-state');
         if (res.ok) {
           const data = await res.json();
-          if (data.appointments) setAppointments(data.appointments);
+          if (data.appointments) setAppointments(sanitizeAppointments(data.appointments));
           if (data.notifications) setNotifications(data.notifications);
           if (data.scheduleSettings) setScheduleSettings(data.scheduleSettings);
           if (data.securitySettings) setSecuritySettings(data.securitySettings);
@@ -124,7 +147,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (parsed.appointments) setAppointments(parsed.appointments);
+          if (parsed.appointments) setAppointments(sanitizeAppointments(parsed.appointments));
           if (parsed.notifications) setNotifications(parsed.notifications);
           if (parsed.scheduleSettings) setScheduleSettings(parsed.scheduleSettings);
           if (parsed.securitySettings) setSecuritySettings(parsed.securitySettings);
@@ -141,7 +164,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const res = await fetch('/api/app-state');
         if (res.ok) {
           const data = await res.json();
-          if (data.appointments) setAppointments(data.appointments);
+          if (data.appointments) {
+            setAppointments((prev) => {
+              const sanitized = data.appointments.map((apt: Appointment) => {
+                if (
+                  apt.client?.name?.toLowerCase().includes('emili') &&
+                  apt.status === 'confirmada' &&
+                  (!apt.technicianName ||
+                    apt.technicianName.includes('Especialista') ||
+                    apt.technicianName.includes('Pedro') ||
+                    apt.technicianName.includes('asignar'))
+                ) {
+                  return { ...apt, status: 'aprobada_por_cliente' as AppointmentStatus };
+                }
+                return apt;
+              });
+              return sanitized;
+            });
+          }
           if (data.notifications) setNotifications(data.notifications);
           if (data.scheduleSettings) setScheduleSettings(data.scheduleSettings);
           if (data.securitySettings) setSecuritySettings(data.securitySettings);
@@ -339,6 +379,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         recipient: apt.client.phone,
         title: `⚡ Tu Presupuesto Dual por VIN está listo (Folio ${apt.folio})`,
         message: `Hola ${apt.client.name}! Hemos preparado tu cotización para el ${apt.vehicle.brand} ${apt.vehicle.model}: Opción Agencia $${dualQuote.agency.price.toLocaleString()} MXN vs Opción De Autor $${dualQuote.premium.price.toLocaleString()} MXN. Elige tu opción para confirmar tu cita.`,
+      });
+    }
+  };
+
+  const clientApproveQuote = (
+    appointmentId: string,
+    selectedOption: QuoteOptionType,
+    date: string,
+    timeSlot: string,
+    paymentMethod: Appointment['paymentMethod']
+  ) => {
+    setAppointments((prev) =>
+      prev.map((apt) => {
+        if (apt.id !== appointmentId) return apt;
+        return {
+          ...apt,
+          selectedOption,
+          scheduledDate: date || apt.scheduledDate,
+          timeSlot: timeSlot || apt.timeSlot,
+          paymentMethod,
+          paymentStatus: paymentMethod === 'online_card' ? 'paid' : 'pending',
+          status: 'aprobada_por_cliente',
+        };
+      })
+    );
+
+    const apt = appointments.find((a) => a.id === appointmentId);
+    if (apt) {
+      addNotification({
+        appointmentId,
+        channel: 'email',
+        type: 'quote_request',
+        recipient: apt.client.email,
+        title: `✨ Presupuesto Aprobado por el Cliente (Folio ${apt.folio})`,
+        message: `El cliente ${apt.client.name} ha autorizado la ${
+          selectedOption === 'premium' ? 'Opción De Autor' : 'Opción Agencia'
+        }. Por favor revisa y confirma la cita oficial en el Panel Admin.`,
       });
     }
   };
@@ -690,6 +767,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createQuoteRequest,
         createDirectAdminService,
         submitDualQuote,
+        clientApproveQuote,
         acceptQuoteAndBook,
         updateAppointmentStatus,
         saveServiceRecord,

@@ -28,7 +28,7 @@ import { QuoteOptionType, PaymentMethod } from '@/types';
 export default function TrackingPage() {
   const params = useParams();
   const appointmentId = params?.id as string;
-  const { appointments, acceptQuoteAndBook, scheduleSettings } = useApp();
+  const { appointments, clientApproveQuote, scheduleSettings } = useApp();
   const [showReportModal, setShowReportModal] = useState(false);
 
   // Quote approval form states (if client approves online)
@@ -60,7 +60,10 @@ export default function TrackingPage() {
 
   // 6 Real Lifecycle Stages
   const isPending = appointment.status === 'solicitud_pendiente';
-  const isQuoted = appointment.status === 'cotizado';
+  const isQuoted = appointment.status === 'cotizado' && !appointment.selectedOption;
+  const isApprovedByClient =
+    appointment.status === 'aprobada_por_cliente' ||
+    (appointment.status === 'cotizado' && !!appointment.selectedOption);
   const isConfirmed = appointment.status === 'confirmada';
   const isEnCamino = appointment.status === 'en_camino';
   const isEnServicio = appointment.status === 'en_servicio';
@@ -70,7 +73,7 @@ export default function TrackingPage() {
   let currentStep = 1;
   if (isPending) currentStep = 1;
   else if (isQuoted) currentStep = 2;
-  else if (isConfirmed) currentStep = 3;
+  else if (isApprovedByClient || isConfirmed) currentStep = 3;
   else if (isEnCamino) currentStep = 4;
   else if (isEnServicio) currentStep = 5;
   else if (isCompleted) currentStep = 6;
@@ -79,7 +82,7 @@ export default function TrackingPage() {
     e.preventDefault();
     setIsApproving(true);
 
-    acceptQuoteAndBook(
+    clientApproveQuote(
       appointment.id,
       selectedQuoteOption,
       confirmDate || appointment.scheduledDate,
