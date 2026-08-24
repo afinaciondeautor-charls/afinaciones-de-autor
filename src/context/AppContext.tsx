@@ -465,8 +465,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         channel: 'whatsapp',
         type: 'technician_en_route',
         recipient: apt.client.phone,
-        title: '🚗 Tu Master Tech va en camino',
-        message: `Hola ${apt.client.name}! El técnico Pedro Almonte va en camino a tu domicilio (${apt.client.address}). Estimado de arribo: 15-20 mins.`,
+        title: '🚗 Tu Técnico Especialista va en camino',
+        message: `Hola ${apt.client.name}! El técnico ${apt.technicianName || 'Especialista de Autor'} va en camino a tu domicilio (${apt.client.address}). Estimado de arribo: 25-35 mins.`,
       });
     } else if (status === 'completada') {
       addNotification({

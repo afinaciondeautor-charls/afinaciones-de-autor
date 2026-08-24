@@ -116,6 +116,13 @@ export default function TechnicianPage() {
     setIsExecutingAptId(aptId);
   };
 
+  const handleStartRouteAndNotify = (apt: Appointment) => {
+    updateAppointmentStatus(apt.id, 'en_camino');
+    setIsExecutingAptId(apt.id);
+    const waUrl = getWhatsAppEnRouteLink({ ...apt, status: 'en_camino' });
+    window.open(waUrl, '_blank');
+  };
+
   const handleStartService = () => {
     if (!currentAppointment) return;
     const arrivalTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -519,16 +526,15 @@ export default function TechnicianPage() {
                               <span>GPS / Waze</span>
                             </a>
 
-                            <a
-                              href={getWhatsAppEnRouteLink(apt)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="py-2 px-3.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-2xs active:scale-95"
-                              title="Avisar en camino por WhatsApp"
+                            <button
+                              type="button"
+                              onClick={() => handleStartRouteAndNotify(apt)}
+                              className="py-2 px-3.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-2xs cursor-pointer active:scale-95"
+                              title="Iniciar traslado y avisar por WhatsApp"
                             >
-                              <MessageSquare className="w-3.5 h-3.5" />
+                              <MessageSquare className="w-3.5 h-3.5 text-emerald-300" />
                               <span>Avisar en Camino</span>
-                            </a>
+                            </button>
                           </div>
 
                           {/* Botón de Flujo Operativo */}
@@ -640,11 +646,11 @@ export default function TechnicianPage() {
                   <div className="pt-2">
                     <button
                       type="button"
-                      onClick={() => handleStartRoute(currentAppointment.id)}
-                      className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-xs cursor-pointer transition"
+                      onClick={() => handleStartRouteAndNotify(currentAppointment)}
+                      className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-xs cursor-pointer transition active:scale-95"
                     >
                       <Play className="w-4 h-4 text-emerald-400" />
-                      <span>Iniciar Traslado al Domicilio</span>
+                      <span>Iniciar Traslado & Avisar por WhatsApp</span>
                     </button>
                   </div>
                 )}
