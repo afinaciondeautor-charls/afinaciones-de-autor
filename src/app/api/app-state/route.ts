@@ -25,7 +25,9 @@ interface ServerState {
   securitySettings: SecuritySettings;
 }
 
-const DATA_DIR = path.join(process.cwd(), '.server_data');
+const DATA_DIR = process.env.VERCEL
+  ? '/tmp'
+  : path.join(process.cwd(), '.server_data');
 const DATA_FILE = path.join(DATA_DIR, 'app_state.json');
 
 function getInitialState(): ServerState {
