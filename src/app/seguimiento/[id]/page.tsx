@@ -146,17 +146,45 @@ export default function TrackingPage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
             {stepsList.map((st) => {
-              const isPast = st.num < currentStep;
-              const isCurrent = st.num === currentStep;
-              const isFuture = st.num > currentStep;
+              // Determinamos el estado visual de cada paso:
+              let statusMode: 'done' | 'active_pulse' | 'waiting' = 'waiting';
+
+              if (st.num === 1) {
+                statusMode = isPending ? 'active_pulse' : 'done';
+              } else if (st.num === 2) {
+                if (isPending) statusMode = 'waiting';
+                else if (isQuoted) statusMode = 'active_pulse';
+                else statusMode = 'done';
+              } else if (st.num === 3) {
+                // Paso 3 (Cotización Aprobada / Cita Confirmada): Si ya fue aprobada/confirmada, se muestra en VERDE completado
+                if (isPending || isQuoted) statusMode = 'waiting';
+                else statusMode = 'done';
+              } else if (st.num === 4) {
+                // Paso 4 (Técnico en Camino): Pulso naranja si va en camino, verde si ya avanzó, espera si no
+                if (isEnCamino) statusMode = 'active_pulse';
+                else if (isEnServicio || isCompleted) statusMode = 'done';
+                else statusMode = 'waiting';
+              } else if (st.num === 5) {
+                // Paso 5 (En Servicio & Fotos): Pulso naranja si está en servicio, verde si finalizó
+                if (isEnServicio) statusMode = 'active_pulse';
+                else if (isCompleted) statusMode = 'done';
+                else statusMode = 'waiting';
+              } else if (st.num === 6) {
+                // Paso 6 (Orden Realizada): Verde si ya se completó
+                if (isCompleted) statusMode = 'done';
+                else statusMode = 'waiting';
+              }
+
+              const isDone = statusMode === 'done';
+              const isActivePulse = statusMode === 'active_pulse';
 
               return (
                 <div
                   key={st.num}
                   className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between ${
-                    isCurrent
-                      ? 'bg-amber-50/80 border-amber-400 ring-2 ring-amber-400/20 text-slate-900'
-                      : isPast
+                    isActivePulse
+                      ? 'bg-amber-50/90 border-amber-400 ring-2 ring-amber-400/20 text-slate-900 shadow-xs'
+                      : isDone
                       ? 'bg-emerald-50/50 border-emerald-300 text-slate-900'
                       : 'bg-slate-50 border-slate-200 text-slate-400'
                   }`}
@@ -164,9 +192,9 @@ export default function TrackingPage() {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[10px] font-mono font-bold text-slate-500">Paso {st.num}</span>
-                      {isPast ? (
+                      {isDone ? (
                         <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      ) : isCurrent ? (
+                      ) : isActivePulse ? (
                         <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />
                       ) : (
                         <Clock className="w-4 h-4 text-slate-300" />
