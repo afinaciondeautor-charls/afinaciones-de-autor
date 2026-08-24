@@ -21,7 +21,9 @@ export function getAppBaseUrl(): string {
   if (typeof window !== 'undefined') {
     return window.location.origin;
   }
-  return 'http://192.168.100.192:3005';
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return 'https://afinaciones-de-autor.vercel.app';
 }
 
 /**
@@ -32,7 +34,11 @@ export function getWhatsAppQuoteLink(appointment: Appointment): string {
   const baseUrl = getAppBaseUrl();
   const trackingUrl = `${baseUrl}/seguimiento/${appointment.id}`;
 
-  const serviceName = appointment.serviceDescription || (appointment.packageType === 'afinacion_mayor' ? 'Afinación Mayor de Autor' : 'Mantenimiento Automotriz');
+  const serviceName =
+    appointment.serviceDescription ||
+    (appointment.packageType === 'afinacion_mayor'
+      ? 'Afinación Mayor de Autor'
+      : 'Mantenimiento Automotriz');
 
   const agencyPrice = appointment.quote?.agency.price
     ? `$${appointment.quote.agency.price.toLocaleString()} MXN`
@@ -59,13 +65,40 @@ Hemos preparado las opciones para tu atención a domicilio:
 🔍 Puedes consultar el desglose y *aprobar tu servicio en 1-click* aquí:
 👉 ${trackingUrl}
 
-¡Quedamos a tus órdenes para atenderte en la puerta de tu casa! 🛠️`;
+Quedamos atentos a cualquier duda o ajuste en tu fecha y horario preferido.`;
 
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
 
 /**
- * Genera el enlace de WhatsApp para avisar que el técnico va en camino
+ * Genera el enlace de WhatsApp para Confirmación Oficial de Cita al cliente
+ */
+export function getWhatsAppBookingConfirmationLink(appointment: Appointment): string {
+  const phone = formatWhatsAppPhone(appointment.client.phone);
+  const baseUrl = getAppBaseUrl();
+  const trackingUrl = `${baseUrl}/seguimiento/${appointment.id}`;
+
+  const message = `¡Hola *${appointment.client.name.trim()}*! 🚗✅
+
+Tu cita de servicio con *Afinaciones de Autor* ha quedado *CONFIRMADA*.
+
+📋 *Folio:* ${appointment.folio}
+🚘 *Vehículo:* ${appointment.vehicle.brand} ${appointment.vehicle.model} (${appointment.vehicle.year}) • Placas: ${appointment.vehicle.plates || 'S/P'}
+📅 *Fecha:* ${appointment.scheduledDate}
+🕒 *Horario de Visita:* ${appointment.timeSlot}
+🧑‍🔧 *Técnico Asignado:* ${appointment.technicianName} ${appointment.technicianPhone ? '(' + appointment.technicianPhone + ')' : ''}
+📍 *Dirección:* ${appointment.client.address}
+
+🔍 Puedes ver los detalles y el estatus de tu unidad móvil en vivo aquí:
+👉 ${trackingUrl}
+
+¡Gracias por confiar en Afinaciones de Autor!`;
+
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+}
+
+/**
+ * Genera el enlace de WhatsApp cuando el técnico va en camino
  */
 export function getWhatsAppEnRouteLink(appointment: Appointment): string {
   const phone = formatWhatsAppPhone(appointment.client.phone);
@@ -74,35 +107,35 @@ export function getWhatsAppEnRouteLink(appointment: Appointment): string {
 
   const message = `¡Hola *${appointment.client.name.trim()}*! 🚗💨
 
-Tu Master Tech de *Afinaciones de Autor* (*${appointment.technicianName || 'Pedro Almonte'}*) va en camino a tu domicilio en *${appointment.client.address}*.
+Tu técnico especialista de *Afinaciones de Autor* (${appointment.technicianName}) acaba de iniciar el traslado hacia tu domicilio.
 
-⏱️ *Tiempo estimado de llegada:* 15 a 20 minutos.
-📋 *Servicio programado:* Afinación de Autor a Domicilio (${appointment.vehicle.brand} ${appointment.vehicle.model}).
+📍 *Destino:* ${appointment.client.address}
+🕒 *Tiempo Estimado de Llegada:* 25 - 35 minutos
 
-Puedes seguir el estatus de tu servicio en vivo aquí:
-👉 ${trackingUrl}
-
-¡Nos vemos en un momento! 🔧`;
+🔍 Sigue la unidad móvil en vivo aquí:
+👉 ${trackingUrl}`;
 
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
 
 /**
- * Genera el enlace de WhatsApp para avisar que el servicio terminó y enviar el Reporte Técnico PDF
+ * Genera el enlace de WhatsApp cuando el servicio ha finalizado con Reporte Técnico
  */
 export function getWhatsAppCompletedLink(appointment: Appointment): string {
   const phone = formatWhatsAppPhone(appointment.client.phone);
   const baseUrl = getAppBaseUrl();
   const trackingUrl = `${baseUrl}/seguimiento/${appointment.id}`;
 
-  const message = `¡Hola *${appointment.client.name.trim()}*! ✅
+  const message = `¡Hola *${appointment.client.name.trim()}*! 🚗🎉
 
-El servicio de *Afinación de Autor* para tu *${appointment.vehicle.brand} ${appointment.vehicle.model}* ha finalizado con éxito en tu cochera.
+El servicio de afinación para tu *${appointment.vehicle.brand} ${appointment.vehicle.model}* ha finalizado con éxito.
 
-📄 Tu *Reporte Técnico Oficial Certificado* con la bitácora de fotos antes/después y tu *Póliza de Garantía por Escrito* ya está disponible:
+📄 Hemos emitido tu *Reporte Técnico Digital y Póliza de Garantía por Escrito*.
+
+🔍 Puedes consultar y descargar tu reporte completo aquí:
 👉 ${trackingUrl}
 
-¡Muchas gracias por confiar en Afinaciones de Autor! 🛠️⭐`;
+¡Gracias por elegir la precisión de Afinaciones de Autor!`;
 
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }

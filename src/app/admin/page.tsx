@@ -590,16 +590,16 @@ export default function AdminDashboardPage() {
                           </div>
 
                           <div className="flex flex-wrap items-center gap-2.5">
-                            {/* Botón Aprobar Cotización (Abre modal para autorizar opción y confirmar fecha/hora) */}
-                            {apt.quote && (isPending || isSent) && (
+                            {/* Botón Confirmar Cotización / Cita Oficial */}
+                            {apt.quote && (isPending || isSent || isApproved) && (
                               <button
                                 type="button"
                                 onClick={() => setSelectedAptForApproval(apt)}
                                 className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-2xs transition cursor-pointer active:scale-95"
-                                title="Aprobar cotización y confirmar cita de servicio"
+                                title="Confirmar cita, asignar técnico y notificar al cliente"
                               >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>Aprobar Cotización</span>
+                                <CheckCircle2 className="w-3.5 h-3.5 text-amber-300" />
+                                <span>{isApproved ? 'Confirmar Cita & Notificar' : 'Confirmar / Aprobar Cita'}</span>
                               </button>
                             )}
 
@@ -801,7 +801,9 @@ export default function AdminDashboardPage() {
               data.selectedOption,
               data.date,
               data.timeSlot,
-              data.paymentMethod
+              data.paymentMethod,
+              data.technicianName,
+              data.technicianPhone
             );
             setSelectedAptForApproval(null);
             setQuoteFilter('aprobadas');

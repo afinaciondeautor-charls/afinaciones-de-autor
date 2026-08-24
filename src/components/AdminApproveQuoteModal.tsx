@@ -11,11 +11,15 @@ import {
   Sparkles,
   ShieldCheck,
   X,
-  AlertCircle,
   Car,
   User,
   MapPin,
+  Send,
+  MessageSquare,
+  Wrench,
 } from 'lucide-react';
+import { useApp } from '@/context/AppContext';
+import { getWhatsAppBookingConfirmationLink } from '@/lib/whatsapp';
 
 interface Props {
   appointment: Appointment;
@@ -26,6 +30,8 @@ interface Props {
     date: string;
     timeSlot: string;
     paymentMethod: PaymentMethod;
+    technicianName?: string;
+    technicianPhone?: string;
     notes?: string;
   }) => void;
 }
@@ -36,6 +42,21 @@ export default function AdminApproveQuoteModal({
   onClose,
   onApprove,
 }: Props) {
+  const { securitySettings } = useApp();
+
+  const activeTechnicians = securitySettings?.staffMembers?.filter(
+    (m) => m.role === 'technician' && m.status === 'active'
+  ) || [];
+
+  const defaultTech =
+    activeTechnicians.find((t) => t.name === appointment.technicianName) ||
+    activeTechnicians[0] || {
+      name: appointment.technicianName && appointment.technicianName !== 'Por asignar al confirmar'
+        ? appointment.technicianName
+        : 'Técnico Especialista de Autor',
+      phone: appointment.technicianPhone || '+52 33 0000 0000',
+    };
+
   const [selectedOption, setSelectedOption] = useState<QuoteOptionType>(
     appointment.selectedOption || 'premium'
   );
@@ -48,14 +69,25 @@ export default function AdminApproveQuoteModal({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
     appointment.paymentMethod || 'online_card'
   );
+  const [assignedTechName, setAssignedTechName] = useState(defaultTech.name);
+  const [assignedTechPhone, setAssignedTechPhone] = useState(defaultTech.phone);
   const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
   const agencyPrice = appointment.quote?.agency.price || 4670;
   const premiumPrice = appointment.quote?.premium.price || 5610;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleTechChange = (techName: string) => {
+    setAssignedTechName(techName);
+    const found = securitySettings?.staffMembers?.find((m) => m.name === techName);
+    if (found) {
+      setAssignedTechPhone(found.phone);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!date) {
       alert('Por favor selecciona la fecha de servicio.');
@@ -66,13 +98,49 @@ export default function AdminApproveQuoteModal({
       return;
     }
 
+    setIsSubmitting(true);
+
+    const updatedApt: Appointment = {
+      ...appointment,
+      selectedOption,
+      scheduledDate: date,
+      timeSlot,
+      technicianName: assignedTechName,
+      technicianPhone: assignedTechPhone,
+      paymentMethod,
+      paymentStatus: paymentMethod === 'online_card' ? 'paid' : 'pending',
+      status: 'confirmada',
+    };
+
+    // 1. Guardar en el sistema
     onApprove({
       selectedOption,
       date,
       timeSlot,
       paymentMethod,
+      technicianName: assignedTechName,
+      technicianPhone: assignedTechPhone,
       notes,
     });
+
+    // 2. Enviar correo de Confirmación de Cita al cliente
+    if (appointment.client.email) {
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'booking_confirmed',
+          appointment: updatedApt,
+        }),
+      }).catch((err) => console.log('Error enviando correo de confirmación:', err));
+    }
+
+    // 3. Abrir WhatsApp con mensaje de confirmación
+    const waLink = getWhatsAppBookingConfirmationLink(updatedApt);
+    window.open(waLink, '_blank');
+
+    setIsSubmitting(false);
+    onClose();
   };
 
   const timeSlots = [
@@ -95,14 +163,14 @@ export default function AdminApproveQuoteModal({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base sm:text-lg font-black text-slate-900">
-                  Aprobar Cotización & Confirmar Cita
+                  Confirmar Cotización & Cita Oficial
                 </h3>
                 <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md">
                   {appointment.folio}
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Valida la opción autorizada por el cliente y confirma fecha/horario de visita.
+                Asigna el técnico responsable y notifica automáticamente por WhatsApp y Correo.
               </p>
             </div>
           </div>
@@ -122,7 +190,7 @@ export default function AdminApproveQuoteModal({
             <div className="flex items-center gap-1.5 font-bold text-slate-900">
               <User className="w-3.5 h-3.5 text-slate-500" />
               <span>{appointment.client.name}</span>
-              <span className="text-slate-400 font-normal">({appointment.client.phone})</span>
+              <span className="text-slate-500 font-normal">({appointment.client.phone})</span>
             </div>
             <div className="flex items-center gap-1.5 font-bold text-slate-800">
               <Car className="w-3.5 h-3.5 text-slate-500" />
@@ -219,15 +287,47 @@ export default function AdminApproveQuoteModal({
           </div>
 
           {/* ======================================================== */}
-          {/* 2. FECHA Y HORARIO DE SERVICIO (MODIFICAR O CONFIRMAR)    */}
+          {/* 2. TÉCNICO RESPONSABLE ASIGNADO                          */}
+          {/* ======================================================== */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider font-mono flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>2. Técnico Asignado para la Visita:</span>
+            </label>
+
+            {activeTechnicians.length > 0 ? (
+              <select
+                value={assignedTechName}
+                onChange={(e) => handleTechChange(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 focus:bg-white rounded-xl text-xs font-bold text-slate-900 focus:outline-hidden focus:border-slate-500 transition"
+              >
+                {activeTechnicians.map((t) => (
+                  <option key={t.id} value={t.name}>
+                    🧑‍🔧 {t.name} ({t.phone})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={assignedTechName}
+                onChange={(e) => setAssignedTechName(e.target.value)}
+                placeholder="Nombre del Técnico Asignado"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 focus:bg-white rounded-xl text-xs font-bold text-slate-900 focus:outline-hidden focus:border-slate-500 transition"
+                required
+              />
+            )}
+          </div>
+
+          {/* ======================================================== */}
+          {/* 3. FECHA Y HORARIO DE SERVICIO                            */}
           {/* ======================================================== */}
           <div className="space-y-2.5">
             <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider font-mono">
-              2. Fecha y Horario de Atención (Modificar o Confirmar):
+              3. Fecha y Horario de Atención:
             </label>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Fecha */}
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 mb-1">
                   Fecha del Servicio:
@@ -244,7 +344,6 @@ export default function AdminApproveQuoteModal({
                 </div>
               </div>
 
-              {/* Horario */}
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 mb-1">
                   Horario de Visita:
@@ -268,11 +367,11 @@ export default function AdminApproveQuoteModal({
           </div>
 
           {/* ======================================================== */}
-          {/* 3. FORMA DE PAGO ACORDADA                                */}
+          {/* 4. FORMA DE PAGO                                         */}
           {/* ======================================================== */}
           <div className="space-y-2.5">
             <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider font-mono">
-              3. Forma de Pago Acordada con el Cliente:
+              4. Forma de Pago Acordada:
             </label>
 
             <div className="grid grid-cols-3 gap-2">
@@ -317,38 +416,23 @@ export default function AdminApproveQuoteModal({
             </div>
           </div>
 
-          {/* ======================================================== */}
-          {/* 4. NOTAS O INSTRUCCIONES ADICIONALES                     */}
-          {/* ======================================================== */}
-          <div className="space-y-1">
-            <label className="block text-[11px] font-bold text-slate-600">
-              Notas u Observaciones del Acuerdo (Opcional):
-            </label>
-            <input
-              type="text"
-              placeholder="Ej. Cliente confirmó por WhatsApp, solicitó aviso 15 min antes..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 focus:bg-white rounded-xl text-xs text-slate-900 focus:outline-hidden focus:border-slate-500 transition"
-            />
-          </div>
-
           {/* Botones de Acción Final */}
           <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="w-1/3 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
+              className="w-1/3 py-3.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
             >
               Cancelar
             </button>
 
             <button
               type="submit"
-              className="w-2/3 py-3.5 px-5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition cursor-pointer active:scale-95"
+              disabled={isSubmitting}
+              className="w-2/3 py-3.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition cursor-pointer active:scale-95"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Guardar & Pasar a Aprobada</span>
+              <Send className="w-4 h-4" />
+              <span>Confirmar Cita & Notificar (WhatsApp & Correo)</span>
             </button>
           </div>
         </form>

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { sendQuoteRequestEmail, sendDualQuoteProposalEmail } from '@/lib/email';
+import { sendQuoteRequestEmail, sendDualQuoteProposalEmail, sendBookingConfirmedEmail } from '@/lib/email';
 import { Appointment, DualQuote } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -13,6 +13,11 @@ export async function POST(request: Request) {
 
     if (!appointment) {
       return NextResponse.json({ success: false, error: 'Appointment data required' }, { status: 400 });
+    }
+
+    if (type === 'booking_confirmed') {
+      const result = await sendBookingConfirmedEmail(appointment);
+      return NextResponse.json(result);
     }
 
     if (type === 'dual_quote_proposal' && quote) {

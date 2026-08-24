@@ -47,7 +47,9 @@ interface AppContextType {
     selectedOption: QuoteOptionType,
     date: string,
     timeSlot: string,
-    paymentMethod: Appointment['paymentMethod']
+    paymentMethod: Appointment['paymentMethod'],
+    technicianName?: string,
+    technicianPhone?: string
   ) => void;
   updateAppointmentStatus: (appointmentId: string, status: AppointmentStatus, note?: string) => void;
   saveServiceRecord: (appointmentId: string, record: Partial<ServiceRecord>) => void;
@@ -346,12 +348,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     selectedOption: QuoteOptionType,
     date: string,
     timeSlot: string,
-    paymentMethod: Appointment['paymentMethod']
+    paymentMethod: Appointment['paymentMethod'],
+    technicianName?: string,
+    technicianPhone?: string
   ) => {
-    const activeTech = securitySettings?.staffMembers?.find((m) => m.role === 'technician' && m.status === 'active') || {
+    const defaultTech = securitySettings?.staffMembers?.find((m) => m.role === 'technician' && m.status === 'active') || {
       name: 'Técnico Especialista de Autor',
       phone: '+52 33 0000 0000',
     };
+
+    const finalTechName = technicianName || defaultTech.name;
+    const finalTechPhone = technicianPhone || defaultTech.phone;
 
     setAppointments((prev) =>
       prev.map((apt) => {
@@ -361,8 +368,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           selectedOption,
           scheduledDate: date,
           timeSlot,
-          technicianName: activeTech.name,
-          technicianPhone: activeTech.phone,
+          technicianName: finalTechName,
+          technicianPhone: finalTechPhone,
           paymentMethod,
           paymentStatus: paymentMethod === 'online_card' ? 'paid' : 'pending',
           status: 'confirmada',
@@ -380,7 +387,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         type: 'booking_confirmed',
         recipient: apt.client.phone,
         title: `✅ Cita Confirmada: ${date} (${timeSlot})`,
-        message: `Excelente ${apt.client.name}! Tu servicio de Afinación de Autor a domicilio ha quedado confirmado para el ${date} en el horario de ${timeSlot}. Técnico asignado: Pedro Almonte.`,
+        message: `Excelente ${apt.client.name}! Tu servicio de Afinación de Autor a domicilio ha quedado confirmado para el ${date} en el horario de ${timeSlot}. Técnico asignado: ${finalTechName}.`,
       });
     }
   };
