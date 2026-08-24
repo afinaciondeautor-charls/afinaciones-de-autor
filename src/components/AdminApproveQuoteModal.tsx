@@ -204,6 +204,17 @@ export default function AdminApproveQuoteModal({
           </div>
         </div>
 
+        {/* Aviso de Política de Cancelación / Reprogramación */}
+        <div className="bg-amber-50/70 border border-amber-200 p-3.5 rounded-2xl flex items-start gap-2.5 text-xs text-amber-950">
+          <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <span className="font-bold block text-[11px]">Reserva de Refacciones & Compromiso de Fecha:</span>
+            <p className="text-[11px] text-amber-900 leading-relaxed">
+              Al confirmar, las piezas se reservan formalmente por VIN y se bloquea la ruta del técnico. Cualquier cambio o ajuste de horario debe acordarse aquí antes de la confirmación; reprogramaciones con menos de 24 hrs aplican cuota de penalización ($350 MXN).
+            </p>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* ======================================================== */}
           {/* 1. SELECCIÓN DE OPCIÓN DE COTIZACIÓN AUTORIZADA          */}

@@ -540,12 +540,19 @@ export default function AdminDashboardPage() {
                                 )}
                               </div>
 
-                              <div className="text-xs text-slate-500 font-mono">
-                                Fecha de Visita:{' '}
-                                <strong className="text-slate-800">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedAptForApproval(apt)}
+                                className="text-xs text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 px-3 py-1.5 rounded-xl font-mono flex items-center gap-1.5 transition cursor-pointer group shadow-2xs"
+                                title="Clic para modificar fecha, horario o confirmar cita"
+                              >
+                                <Calendar className="w-3.5 h-3.5 text-[#00509E]" />
+                                <span>Fecha de Visita:</span>
+                                <strong className="text-slate-900 group-hover:text-[#00509E]">
                                   {apt.scheduledDate} • {apt.timeSlot}
                                 </strong>
-                              </div>
+                                <span className="text-[10px] text-slate-400 group-hover:text-amber-600 ml-0.5">✏️ Editar</span>
+                              </button>
                             </div>
 
                             {/* Datos del Cliente y Vehículo con padding y márgenes limpios */}
