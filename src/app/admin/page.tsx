@@ -681,11 +681,28 @@ export default function AdminDashboardPage() {
                             <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-slate-100">
                               <div>
                                 {apt.quote && (
-                                  <div className="flex items-center gap-3 text-xs font-mono">
-                                    <span>Agencia OEM: <strong className="text-slate-900 font-bold">${apt.quote.agency.price.toLocaleString()}</strong></span>
-                                    <span className="text-slate-300">|</span>
-                                    <span>De Autor: <strong className="text-slate-900 font-bold">${apt.quote.premium.price.toLocaleString()}</strong></span>
-                                  </div>
+                                  apt.selectedOption ? (
+                                    <div className="flex items-center gap-2 text-xs font-mono">
+                                      <span className="text-[11px] font-bold text-slate-500 uppercase">Opción Autorizada:</span>
+                                      {apt.selectedOption === 'agencia' || apt.selectedOption === 'agency' ? (
+                                        <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-900 border border-slate-200 font-bold flex items-center gap-1.5">
+                                          <span>Agencia OEM:</span>
+                                          <strong className="text-emerald-700 font-black">${(apt.quote.agency?.price || 0).toLocaleString()} MXN</strong>
+                                        </span>
+                                      ) : (
+                                        <span className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-950 border border-amber-200 font-bold flex items-center gap-1.5">
+                                          <span>⚡ De Autor:</span>
+                                          <strong className="text-emerald-700 font-black">${(apt.quote.premium?.price || 0).toLocaleString()} MXN</strong>
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-3 text-xs font-mono">
+                                      <span>Agencia OEM: <strong className="text-slate-900 font-bold">${(apt.quote.agency?.price || 0).toLocaleString()}</strong></span>
+                                      <span className="text-slate-300">|</span>
+                                      <span>De Autor: <strong className="text-slate-900 font-bold">${(apt.quote.premium?.price || 0).toLocaleString()}</strong></span>
+                                    </div>
+                                  )
                                 )}
                               </div>
 
