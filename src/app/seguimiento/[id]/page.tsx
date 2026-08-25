@@ -29,8 +29,16 @@ import { formatDisplayDate } from '@/lib/dateUtils';
 export default function TrackingPage() {
   const params = useParams();
   const appointmentId = params?.id as string;
-  const { appointments, clientApproveQuote, scheduleSettings } = useApp();
+  const { appointments, clientApproveQuote, scheduleSettings, refreshAppState } = useApp();
   const [showReportModal, setShowReportModal] = useState(false);
+
+  // Sincronización en vivo cada 3 segundos del estatus para el cliente
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      refreshAppState();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [refreshAppState]);
 
   // Quote approval form states (if client approves online)
   const [selectedQuoteOption, setSelectedQuoteOption] = useState<QuoteOptionType>('premium');

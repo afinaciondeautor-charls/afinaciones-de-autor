@@ -75,6 +75,7 @@ interface AppContextType {
   removeStaffMember: (id: string) => void;
   verifyAccessPin: (role: 'admin' | 'technician', pinInput: string) => boolean;
   resetToMockData: () => void;
+  refreshAppState: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -111,27 +112,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const refreshAppState = async () => {
+    try {
+      const res = await fetch('/api/app-state');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.appointments && Array.isArray(data.appointments)) {
+          setAppointments(data.appointments);
+        }
+        if (data.notifications) setNotifications(data.notifications);
+        if (data.scheduleSettings) setScheduleSettings(data.scheduleSettings);
+        if (data.securitySettings) setSecuritySettings(data.securitySettings);
+      }
+    } catch (e) {
+      console.error('Failed to refresh server state:', e);
+    }
+  };
+
   // Carga inicial directa desde el Servidor / Base de Datos
   useEffect(() => {
-    const fetchInitial = async () => {
-      try {
-        const res = await fetch('/api/app-state');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.appointments && Array.isArray(data.appointments)) {
-            setAppointments(data.appointments);
-          }
-          if (data.notifications) setNotifications(data.notifications);
-          if (data.scheduleSettings) setScheduleSettings(data.scheduleSettings);
-          if (data.securitySettings) setSecuritySettings(data.securitySettings);
-        }
-      } catch (e) {
-        console.error('Failed to fetch server state:', e);
-      }
-      setIsLoaded(true);
-    };
-
-    fetchInitial();
+    refreshAppState().finally(() => setIsLoaded(true));
   }, []);
 
   const addNotification = (notif: Omit<NotificationLog, 'id' | 'timestamp'>) => {
@@ -140,7 +140,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: 'notif-' + Date.now(),
       timestamp: new Date().toISOString(),
     };
-    setNotifications((prev) => [newNotif, ...prev]);
+    setNotifications((prev) => {
+      const updated = [newNotif, ...prev];
+      syncToServer(appointments, updated, scheduleSettings, securitySettings);
+      return updated;
+    });
   };
 
   const createQuoteRequest = (data: Partial<Appointment>): string => {
@@ -152,7 +156,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       folio: newFolio,
       client: data.client || {
         id: 'cli-' + Date.now(),
-        name: 'Cliente Nuevo',
+        name: 'Cliente Sin Nombre',
         phone: '',
         email: '',
         address: '',
@@ -166,7 +170,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         vin: '',
         currentKm: 45000,
       },
-      packageType: data.packageType || 'afinacion_mayor',
+      packageType: data.packageType || 'mayor',
       status: 'solicitud_pendiente',
       scheduledDate: data.scheduledDate || new Date().toISOString().split('T')[0],
       timeSlot: data.timeSlot || '09:00 - 11:30',
@@ -179,7 +183,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: new Date().toISOString(),
     };
 
-    setAppointments((prev) => [newAppointment, ...prev]);
+    setAppointments((prev) => {
+      const updated = [newAppointment, ...prev];
+      syncToServer(updated, notifications, scheduleSettings, securitySettings);
+      return updated;
+    });
 
     addNotification({
       appointmentId: newId,
@@ -267,7 +275,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: new Date().toISOString(),
     };
 
-    setAppointments((prev) => [newAppointment, ...prev]);
+    setAppointments((prev) => {
+      const updated = [newAppointment, ...prev];
+      syncToServer(updated, notifications, scheduleSettings, securitySettings);
+      return updated;
+    });
 
     addNotification({
       appointmentId: newId,
@@ -286,16 +298,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const submitDualQuote = (appointmentId: string, dualQuote: DualQuote) => {
-    setAppointments((prev) =>
-      prev.map((apt) => {
+    setAppointments((prev) => {
+      const updated = prev.map((apt) => {
         if (apt.id !== appointmentId) return apt;
         return {
           ...apt,
           quote: dualQuote,
-          status: 'cotizado',
+          status: 'cotizado' as AppointmentStatus,
         };
-      })
-    );
+      });
+      syncToServer(updated, notifications, scheduleSettings, securitySettings);
+      return updated;
+    });
 
     const apt = appointments.find((a) => a.id === appointmentId);
     if (apt) {
@@ -317,8 +331,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     timeSlot: string,
     paymentMethod: Appointment['paymentMethod']
   ) => {
-    setAppointments((prev) =>
-      prev.map((apt) => {
+    setAppointments((prev) => {
+      const updated = prev.map((apt) => {
         if (apt.id !== appointmentId) return apt;
         return {
           ...apt,
@@ -327,10 +341,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           timeSlot: timeSlot || apt.timeSlot,
           paymentMethod,
           paymentStatus: paymentMethod === 'online_card' ? 'paid' : 'pending',
-          status: 'aprobada_por_cliente',
+          status: 'aprobada_por_cliente' as AppointmentStatus,
         };
-      })
-    );
+      });
+      syncToServer(updated, notifications, scheduleSettings, securitySettings);
+      return updated;
+    });
 
     const apt = appointments.find((a) => a.id === appointmentId);
     if (apt) {
@@ -364,8 +380,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const finalTechName = technicianName || defaultTech.name;
     const finalTechPhone = technicianPhone || defaultTech.phone;
 
-    setAppointments((prev) =>
-      prev.map((apt) => {
+    setAppointments((prev) => {
+      const updated = prev.map((apt) => {
         if (apt.id !== appointmentId) return apt;
         return {
           ...apt,
@@ -376,12 +392,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           technicianPhone: finalTechPhone,
           paymentMethod,
           paymentStatus: paymentMethod === 'online_card' ? 'paid' : 'pending',
-          status: 'confirmada',
+          status: 'confirmada' as AppointmentStatus,
           nextFollowUpDate: new Date(Date.now() + 150 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          followUpStatus: 'pending',
+          followUpStatus: 'pending' as const,
         };
-      })
-    );
+      });
+      syncToServer(updated, notifications, scheduleSettings, securitySettings);
+      return updated;
+    });
 
     const apt = appointments.find((a) => a.id === appointmentId);
     if (apt) {
@@ -397,15 +415,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateAppointmentStatus = (appointmentId: string, status: AppointmentStatus, note?: string) => {
-    setAppointments((prev) =>
-      prev.map((apt) => {
+    setAppointments((prev) => {
+      const updated = prev.map((apt) => {
         if (apt.id !== appointmentId) return apt;
         return {
           ...apt,
           status,
         };
-      })
-    );
+      });
+      syncToServer(updated, notifications, scheduleSettings, securitySettings);
+      return updated;
+    });
 
     const apt = appointments.find((a) => a.id === appointmentId);
     if (!apt) return;
