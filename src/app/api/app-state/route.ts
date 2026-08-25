@@ -46,12 +46,12 @@ function loadLocalState(): ServerState {
     if (fs.existsSync(DATA_FILE)) {
       const raw = fs.readFileSync(DATA_FILE, 'utf-8');
       const parsed = JSON.parse(raw);
-      if (parsed.appointments && parsed.scheduleSettings) {
+      if (parsed) {
         memoryState = {
-          appointments: parsed.appointments,
-          notifications: parsed.notifications || [],
-          scheduleSettings: parsed.scheduleSettings,
-          securitySettings: parsed.securitySettings || INITIAL_SECURITY_SETTINGS,
+          appointments: parsed.appointments && parsed.appointments.length > 0 ? parsed.appointments : INITIAL_APPOINTMENTS,
+          notifications: parsed.notifications || INITIAL_NOTIFICATIONS,
+          scheduleSettings: parsed.scheduleSettings || INITIAL_SCHEDULE_SETTINGS,
+          securitySettings: parsed.securitySettings?.staffMembers?.length > 0 ? parsed.securitySettings : INITIAL_SECURITY_SETTINGS,
         };
         return memoryState;
       }
