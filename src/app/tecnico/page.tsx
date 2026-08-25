@@ -150,7 +150,7 @@ export default function TechnicianPage() {
   const [recommendationsInput, setRecommendationsInput] = useState<string>('');
   const [signatureData, setSignatureData] = useState<string | null>(null);
 
-  // Live timer for ongoing service
+  // Live timer for ongoing service (persisted via startedAt)
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isWorkTimerRunning, setIsWorkTimerRunning] = useState<boolean>(true);
 
@@ -169,20 +169,37 @@ export default function TechnicianPage() {
           'Realizar próxima afinación en 10,000 km o 6 meses para conservar la garantía.'
       );
       setSignatureData(currentAppointment.serviceRecord?.clientSignatureUrl || null);
+
+      // Calcular segundos transcurridos reales desde startedAt
+      const startedAt = currentAppointment.serviceRecord?.startedAt;
+      if (startedAt && currentAppointment.status === 'en_servicio') {
+        const startMs = new Date(startedAt).getTime();
+        const nowMs = Date.now();
+        const diff = Math.max(0, Math.floor((nowMs - startMs) / 1000));
+        setElapsedSeconds(diff);
+      }
     }
-  }, [currentAppointment?.id]);
+  }, [currentAppointment?.id, currentAppointment?.serviceRecord?.startedAt]);
 
   useEffect(() => {
     let interval: any;
     if (currentAppointment?.status === 'en_servicio' && isWorkTimerRunning) {
       interval = setInterval(() => {
-        setElapsedSeconds((prev) => prev + 1);
+        const startedAt = currentAppointment.serviceRecord?.startedAt;
+        if (startedAt) {
+          const startMs = new Date(startedAt).getTime();
+          const nowMs = Date.now();
+          const diff = Math.max(0, Math.floor((nowMs - startMs) / 1000));
+          setElapsedSeconds(diff);
+        } else {
+          setElapsedSeconds((prev) => prev + 1);
+        }
       }, 1000);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [currentAppointment?.status, isWorkTimerRunning]);
+  }, [currentAppointment?.status, currentAppointment?.serviceRecord?.startedAt, isWorkTimerRunning]);
 
   const record = currentAppointment?.serviceRecord;
   const status = currentAppointment?.status;
@@ -1020,6 +1037,7 @@ export default function TechnicianPage() {
                     <EvidenceManager
                       photos={record?.evidencePhotos || []}
                       onChange={handleEvidencesChange}
+                      installedParts={record?.installedParts || []}
                     />
 
                     {/* Checklist de Refacciones */}

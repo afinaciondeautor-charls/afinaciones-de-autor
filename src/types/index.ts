@@ -89,7 +89,7 @@ export interface DualQuote {
 
 export interface EvidencePhoto {
   id: string;
-  category: 'bujias' | 'filtro_aire' | 'filtro_cabina' | 'aceite' | 'cuerpo_aceleracion' | 'general';
+  category: 'bujias' | 'filtro_aire' | 'filtro_cabina' | 'aceite' | 'cuerpo_aceleracion' | 'general' | string;
   label: string;
   beforePhotoUrl?: string;
   afterPhotoUrl?: string;
