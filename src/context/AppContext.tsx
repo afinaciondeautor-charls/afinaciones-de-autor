@@ -480,8 +480,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const saveServiceRecord = (appointmentId: string, record: Partial<ServiceRecord>) => {
-    setAppointments((prev) =>
-      prev.map((apt) => {
+    setAppointments((prev) => {
+      const updated = prev.map((apt) => {
         if (apt.id !== appointmentId) return apt;
         const currentRecord = apt.serviceRecord || {
           id: 'rec-' + Date.now(),
@@ -499,13 +499,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ...record,
           },
         };
-      })
-    );
+      });
+
+      syncToServer(updated, notifications, scheduleSettings, securitySettings);
+      return updated;
+    });
   };
 
   const finalizeService = (appointmentId: string, record: Partial<ServiceRecord>) => {
-    setAppointments((prev) =>
-      prev.map((apt) => {
+    setAppointments((prev) => {
+      const updated = prev.map((apt) => {
         if (apt.id !== appointmentId) return apt;
         const currentRecord = apt.serviceRecord || {
           id: 'rec-' + Date.now(),
@@ -518,15 +521,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
         return {
           ...apt,
-          status: 'completada',
+          status: 'completada' as AppointmentStatus,
           serviceRecord: {
             ...currentRecord,
             ...record,
             completedAt: record.completedAt || new Date().toISOString(),
           },
         };
-      })
-    );
+      });
+
+      syncToServer(updated, notifications, scheduleSettings, securitySettings);
+      return updated;
+    });
 
     const apt = appointments.find((a) => a.id === appointmentId);
     if (apt) {

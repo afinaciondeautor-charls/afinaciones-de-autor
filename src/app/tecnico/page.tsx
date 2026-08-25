@@ -219,18 +219,34 @@ export default function TechnicianPage() {
   const handleStartService = () => {
     if (!currentAppointment) return;
     const arrivalTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    saveServiceRecord(currentAppointment.id, {
-      arrivalTime,
-      startedAt: new Date().toISOString(),
-      initialKm: Number(initialKmInput) || currentAppointment.vehicle.currentKm || 42350,
-      evidencePhotos: record?.evidencePhotos || [],
-      installedParts: record?.installedParts || [
+    // Obtener refacciones reales cotizadas para esta cita
+    const quoteRemision = currentAppointment.quote?.remisionItems;
+    const chosenOption = currentAppointment.selectedOption || 'premium';
+    let defaultParts: InstalledPart[] = [];
+
+    if (quoteRemision && quoteRemision.length > 0) {
+      defaultParts = quoteRemision.map((it) => ({
+        id: it.id,
+        name: it.description,
+        brand: chosenOption === 'agency' ? it.agencyBrand : it.premiumBrand,
+        installed: true,
+      }));
+    } else {
+      defaultParts = [
         { id: 'p1', name: '4x Bujías Iridio / Platino', brand: 'NGK Laser Iridium', installed: true },
         { id: 'p2', name: 'Aceite 100% Sintético (5L)', brand: 'Motul 8100 X-cess', installed: true },
         { id: 'p3', name: 'Filtro de Aceite Blindado', brand: 'Mann Filter W712', installed: true },
         { id: 'p4', name: 'Filtro de Aire Motor', brand: 'Mann Filter C30005', installed: true },
         { id: 'p5', name: 'Filtro de Cabina Carbón', brand: 'Mann Filter CUK', installed: true },
-      ],
+      ];
+    }
+
+    saveServiceRecord(currentAppointment.id, {
+      arrivalTime,
+      startedAt: new Date().toISOString(),
+      initialKm: Number(initialKmInput) || currentAppointment.vehicle.currentKm || 42350,
+      evidencePhotos: record?.evidencePhotos || [],
+      installedParts: record?.installedParts && record.installedParts.length > 0 ? record.installedParts : defaultParts,
       mechanicalObservations: observationsInput,
       futureRecommendations: recommendationsInput,
     });
@@ -1038,6 +1054,8 @@ export default function TechnicianPage() {
                       photos={record?.evidencePhotos || []}
                       onChange={handleEvidencesChange}
                       installedParts={record?.installedParts || []}
+                      quote={currentAppointment.quote}
+                      selectedOption={currentAppointment.selectedOption || 'premium'}
                     />
 
                     {/* Checklist de Refacciones */}

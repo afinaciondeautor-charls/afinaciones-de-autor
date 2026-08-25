@@ -1,118 +1,141 @@
 'use client';
 
 import React, { useState } from 'react';
-import { EvidencePhoto, InstalledPart } from '@/types';
-import { Camera, CheckCircle2, Eye, RotateCcw, Image as ImageIcon, Trash2, Loader2, Plus, Sparkles } from 'lucide-react';
+import { EvidencePhoto, InstalledPart, DualQuote } from '@/types';
+import { Camera, CheckCircle2, Eye, Trash2, Loader2, Sparkles } from 'lucide-react';
 import { compressImage } from '@/lib/imageUtils';
 
 interface Props {
   photos: EvidencePhoto[];
   onChange: (photos: EvidencePhoto[]) => void;
   installedParts?: InstalledPart[];
+  quote?: DualQuote;
+  selectedOption?: 'agency' | 'premium';
 }
 
-const DEFAULT_CATEGORIES = [
-  {
-    category: 'bujias',
-    label: 'Bujías',
-    subtitle: 'Viejas a Reemplazar vs. Nuevas de Iridio Instaladas',
-    defaultNotes: 'Bujías usadas con carbón y electrodo gastado a 1.25mm. Nuevas NGK Iridium calibradas a 0.8mm.',
-  },
-  {
-    category: 'filtro_aire',
-    label: 'Filtro de Aire de Motor',
-    subtitle: 'Filtro Usado Saturado vs. Nuevo Instalado',
-    defaultNotes: 'Filtro usado saturado de hollín y polvo. Reemplazado por elemento filtrante Mann Filter Pro nuevo.',
-  },
-  {
-    category: 'aceite',
-    label: 'Aceite de Motor & Filtro',
-    subtitle: 'Aceite Usado Drenado vs. Nivel con Aceite 100% Sintético',
-    defaultNotes: 'Aceite usado degradado. Relleno con Motul 100% sintético al nivel exacto de bayoneta.',
-  },
-  {
-    category: 'cuerpo_aceleracion',
-    label: 'Cuerpo de Aceleración',
-    subtitle: 'Mariposa con Carbón vs. Descarbonizado y Calibrado',
-    defaultNotes: 'Mariposa con sedimentos de carbón. Se descarbonizó con solvente dieléctrico y se recalibró por OBD-II.',
-  },
-  {
-    category: 'filtro_cabina',
-    label: 'Filtro de Cabina / Polen',
-    subtitle: 'Filtro Viejo vs. Nuevo con Carbón Activado',
-    defaultNotes: 'Filtro de cabina anterior sucio. Se instaló filtro nuevo anti-alérgenos con carbón activado.',
-  },
-];
+interface EvidenceCategoryConfig {
+  category: string;
+  label: string;
+  subtitle: string;
+  defaultNotes: string;
+}
 
-export default function EvidenceManager({ photos = [], onChange, installedParts = [] }: Props) {
+export default function EvidenceManager({
+  photos = [],
+  onChange,
+  installedParts = [],
+  quote,
+  selectedOption = 'premium',
+}: Props) {
   const [activePreview, setActivePreview] = useState<string | null>(null);
   const [processingSlots, setProcessingSlots] = useState<Record<string, boolean>>({});
-  const [showAddCustomModal, setShowAddCustomModal] = useState(false);
-  const [customPartName, setCustomPartName] = useState('');
-  const [customPartNotes, setCustomPartNotes] = useState('');
 
-  // Combinar categorías por defecto + piezas cotizadas/instaladas + evidencias personalizadas ya existentes
-  const dynamicCategories = React.useMemo(() => {
-    const list = [...DEFAULT_CATEGORIES];
+  // Construir categorías ÚNICA y EXCLUSIVAMENTE a partir de lo que fue cotizado
+  const categoriesToRender = React.useMemo<EvidenceCategoryConfig[]>(() => {
+    const list: EvidenceCategoryConfig[] = [];
+    const seenCategories = new Set<string>();
 
-    // Añadir refacciones de la cotización que no coincidan con las estándar
-    installedParts.forEach((part) => {
-      const slug = 'part_' + part.id;
-      const alreadyInDefault = list.some(
-        (c) =>
-          c.category === slug ||
-          part.name.toLowerCase().includes(c.label.toLowerCase())
-      );
-      if (!alreadyInDefault) {
-        list.push({
-          category: slug,
-          label: part.name,
-          subtitle: `Marca: ${part.brand || 'Refacción de Autor'} • Evidencia Antes vs Después`,
-          defaultNotes: `Instalación y reemplazo de ${part.name} (${part.brand}).`,
-        });
-      }
-    });
+    // 1. Si la cotización tiene remisionItems (partidas detalladas por el admin)
+    if (quote?.remisionItems && quote.remisionItems.length > 0) {
+      quote.remisionItems.forEach((item) => {
+        const brand = selectedOption === 'agency' ? item.agencyBrand : item.premiumBrand;
+        const catKey = item.id || `rem_${item.description.toLowerCase().replace(/\s+/g, '_')}`;
+        if (!seenCategories.has(catKey)) {
+          seenCategories.add(catKey);
+          list.push({
+            category: catKey,
+            label: item.description,
+            subtitle: `Especificación: ${brand} (${item.quantity} ${item.unit})`,
+            defaultNotes: `Reemplazo de ${item.description} - ${brand}.`,
+          });
+        }
+      });
+    } else if (installedParts && installedParts.length > 0) {
+      // 2. Si no hay remisionItems, usar installedParts de la cita
+      installedParts.forEach((part) => {
+        const catKey = part.id || `part_${part.name.toLowerCase().replace(/\s+/g, '_')}`;
+        if (!seenCategories.has(catKey)) {
+          seenCategories.add(catKey);
+          list.push({
+            category: catKey,
+            label: part.name,
+            subtitle: `Marca: ${part.brand || 'Original/Autor'}`,
+            defaultNotes: `Instalación y reemplazo de ${part.name}.`,
+          });
+        }
+      });
+    } else {
+      // 3. Fallback estándar si es servicio de afinación base
+      const fallbackDefaults = [
+        {
+          category: 'bujias',
+          label: 'Bujías de Encendido',
+          subtitle: 'Viejas a Reemplazar vs. Nuevas Calibradas',
+          defaultNotes: 'Bujías usadas con desgaste. Se calibraron e instalaron bujías nuevas.',
+        },
+        {
+          category: 'aceite',
+          label: 'Aceite de Motor & Filtro',
+          subtitle: 'Aceite Usado Drenado vs. Nivel con Aceite Sintético Nuevo',
+          defaultNotes: 'Aceite y filtro reemplazados al nivel exacto de fabricante.',
+        },
+        {
+          category: 'filtro_aire',
+          label: 'Filtro de Aire de Motor',
+          subtitle: 'Filtro Usado vs. Filtro Nuevo de Microfiltración',
+          defaultNotes: 'Filtro de aire saturado reemplazado por elemento nuevo.',
+        },
+        {
+          category: 'filtro_cabina',
+          label: 'Filtro de Cabina / Polen',
+          subtitle: 'Filtro Anterior Sucio vs. Nuevo con Carbón Activado',
+          defaultNotes: 'Filtro de aire acondicionado reemplazado.',
+        },
+        {
+          category: 'cuerpo_aceleracion',
+          label: 'Cuerpo de Aceleración',
+          subtitle: 'Mariposa con Carbón vs. Descarbonizado y Calibrado',
+          defaultNotes: 'Descarbonizado y recalibrado de mariposa TPS.',
+        },
+      ];
 
-    // Añadir fotos ya guardadas que sean personalizadas
-    photos.forEach((photo) => {
-      if (!list.some((c) => c.category === photo.category)) {
-        list.push({
-          category: photo.category,
-          label: photo.label || 'Refacción Adicional',
-          subtitle: 'Evidencia técnica de reemplazo',
-          defaultNotes: photo.notes || '',
-        });
-      }
-    });
+      fallbackDefaults.forEach((f) => {
+        if (!seenCategories.has(f.category)) {
+          seenCategories.add(f.category);
+          list.push(f);
+        }
+      });
+    }
 
     return list;
-  }, [installedParts, photos]);
+  }, [quote, selectedOption, installedParts]);
 
   const updatePhoto = (
     category: string,
     type: 'before' | 'after',
     url?: string,
-    notes?: string,
-    customLabel?: string
+    notes?: string
   ) => {
     const existingIndex = photos.findIndex((p) => p.category === category);
     let updatedList = [...photos];
+
+    const catConfig = categoriesToRender.find((c) => c.category === category);
+    const itemLabel = catConfig?.label || category;
 
     if (existingIndex >= 0) {
       const current = updatedList[existingIndex];
       updatedList[existingIndex] = {
         ...current,
+        label: itemLabel,
         ...(type === 'before' ? { beforePhotoUrl: url ?? current.beforePhotoUrl } : {}),
         ...(type === 'after' ? { afterPhotoUrl: url ?? current.afterPhotoUrl } : {}),
         ...(notes !== undefined ? { notes } : {}),
-        ...(customLabel ? { label: customLabel } : {}),
       };
     } else {
-      const catConfig = dynamicCategories.find((c) => c.category === category);
       updatedList.push({
         id: 'ev-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
         category,
-        label: customLabel || catConfig?.label || category,
+        label: itemLabel,
         ...(type === 'before' ? { beforePhotoUrl: url } : {}),
         ...(type === 'after' ? { afterPhotoUrl: url } : {}),
         notes: notes !== undefined ? notes : catConfig?.defaultNotes || '',
@@ -134,12 +157,11 @@ export default function EvidenceManager({ photos = [], onChange, installedParts 
     setProcessingSlots((prev) => ({ ...prev, [slotKey]: true }));
 
     try {
-      // Comprime la imagen del celular a ~150KB en alta definición
-      const compressedDataUrl = await compressImage(file, 1280, 1280, 0.72);
+      // Comprime la imagen del celular en JPEG optimizado (resolución nítida a ~150KB)
+      const compressedDataUrl = await compressImage(file, 1200, 1200, 0.72);
       updatePhoto(category, type, compressedDataUrl);
     } catch (err) {
       console.error('Error al comprimir foto:', err);
-      // Fallback a lectura directa en caso de excepción
       const reader = new FileReader();
       reader.onload = () => {
         if (typeof reader.result === 'string') {
@@ -158,60 +180,32 @@ export default function EvidenceManager({ photos = [], onChange, installedParts 
     if (existingIndex < 0) return;
 
     let updatedList = [...photos];
+    const copy = { ...updatedList[existingIndex] };
     if (type === 'before') {
-      const copy = { ...updatedList[existingIndex] };
       delete copy.beforePhotoUrl;
-      updatedList[existingIndex] = copy;
     } else {
-      const copy = { ...updatedList[existingIndex] };
       delete copy.afterPhotoUrl;
-      updatedList[existingIndex] = copy;
     }
+    updatedList[existingIndex] = copy;
     onChange(updatedList);
-  };
-
-  const handleAddCustomRefaccion = () => {
-    if (!customPartName.trim()) return;
-    const customSlug = 'custom_' + Date.now();
-    const newEv: EvidencePhoto = {
-      id: 'ev-' + Date.now(),
-      category: customSlug,
-      label: customPartName.trim(),
-      notes: customPartNotes.trim() || `Reemplazo de ${customPartName.trim()}`,
-    };
-    onChange([...photos, newEv]);
-    setCustomPartName('');
-    setCustomPartNotes('');
-    setShowAddCustomModal(false);
   };
 
   return (
     <div className="space-y-4">
       {/* Header de Evidencias */}
-      <div className="bg-slate-50 border border-slate-200/90 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-        <div className="space-y-0.5">
-          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <Camera className="w-4 h-4 text-slate-700" />
-            <span>Bitácora de Evidencias Fotográficas por Refacción</span>
-          </h3>
-          <p className="text-xs text-slate-500">
-            Toma o sube la foto de cada pieza a reemplazar (estado inicial) y de la refacción nueva instalada.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setShowAddCustomModal(true)}
-          className="py-2 px-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer shrink-0"
-        >
-          <Plus className="w-3.5 h-3.5 text-amber-400" />
-          <span>+ Agregar Otra Refacción</span>
-        </button>
+      <div className="bg-slate-50 border border-slate-200/90 p-4 rounded-2xl space-y-1 shadow-2xs">
+        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+          <Camera className="w-4 h-4 text-slate-700" />
+          <span>Bitácora de Evidencias Fotográficas de la Cotización</span>
+        </h3>
+        <p className="text-xs text-slate-500">
+          Toma o adjunta la foto de cada refacción cotizada (estado anterior a reemplazar) y de la refacción nueva instalada.
+        </p>
       </div>
 
-      {/* Grid de Refacciones para Fotos */}
+      {/* Grid de Refacciones Cotizadas */}
       <div className="space-y-4">
-        {dynamicCategories.map((cat) => {
+        {categoriesToRender.map((cat) => {
           const current = photos.find((p) => p.category === cat.category);
           const hasBefore = !!current?.beforePhotoUrl;
           const hasAfter = !!current?.afterPhotoUrl;
@@ -267,7 +261,7 @@ export default function EvidenceManager({ photos = [], onChange, installedParts 
                     {processingSlots[`${cat.category}_before`] ? (
                       <div className="flex flex-col items-center justify-center p-6 text-center text-rose-700 w-full h-36">
                         <Loader2 className="w-7 h-7 animate-spin mb-2" />
-                        <span className="text-xs font-bold font-mono">Optimizando evidencia...</span>
+                        <span className="text-xs font-bold font-mono">Optimizando foto...</span>
                       </div>
                     ) : current?.beforePhotoUrl ? (
                       <div className="relative w-full h-36 group">
@@ -302,7 +296,7 @@ export default function EvidenceManager({ photos = [], onChange, installedParts 
                           <Camera className="w-5 h-5 text-rose-700" />
                         </div>
                         <span className="text-xs font-bold text-slate-800">📸 Tomar Foto Antes</span>
-                        <span className="text-[10px] text-slate-400 mt-0.5">Pieza usada o dañada</span>
+                        <span className="text-[10px] text-slate-400 mt-0.5">Pieza usada o a retirar</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -325,7 +319,7 @@ export default function EvidenceManager({ photos = [], onChange, installedParts 
                     {processingSlots[`${cat.category}_after`] ? (
                       <div className="flex flex-col items-center justify-center p-6 text-center text-emerald-700 w-full h-36">
                         <Loader2 className="w-7 h-7 animate-spin mb-2" />
-                        <span className="text-xs font-bold font-mono">Optimizando evidencia...</span>
+                        <span className="text-xs font-bold font-mono">Optimizando foto...</span>
                       </div>
                     ) : current?.afterPhotoUrl ? (
                       <div className="relative w-full h-36 group">
@@ -378,7 +372,7 @@ export default function EvidenceManager({ photos = [], onChange, installedParts 
               <div className="pt-1">
                 <input
                   type="text"
-                  placeholder="Nota técnica (ej. bujías calibradas a 0.8mm y torque a 28 Nm)..."
+                  placeholder="Nota técnica (ej. torque adecuado, pieza instalada conforme a manual)..."
                   defaultValue={current?.notes || ''}
                   onBlur={(e) => {
                     const val = e.target.value;
@@ -393,70 +387,6 @@ export default function EvidenceManager({ photos = [], onChange, installedParts 
           );
         })}
       </div>
-
-      {/* Modal para Agregar Refacción Personalizada */}
-      {showAddCustomModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-500" />
-                <span>Agregar Refacción / Evidencia Adicional</span>
-              </h4>
-              <button
-                type="button"
-                onClick={() => setShowAddCustomModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="space-y-1">
-                <label className="block font-bold text-slate-700">Nombre de la Pieza o Refacción:</label>
-                <input
-                  type="text"
-                  placeholder="ej. Banda de Accesorios / Balatas Delanteras / Sensor MAF"
-                  value={customPartName}
-                  onChange={(e) => setCustomPartName(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:outline-hidden focus:border-slate-500 font-medium"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block font-bold text-slate-700">Observación / Nota Técnica (Opcional):</label>
-                <input
-                  type="text"
-                  placeholder="ej. Se reemplazó por desgaste severo."
-                  value={customPartNotes}
-                  onChange={(e) => setCustomPartNotes(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:outline-hidden focus:border-slate-500 font-medium"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowAddCustomModal(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleAddCustomRefaccion}
-                disabled={!customPartName.trim()}
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5"
-              >
-                <Plus className="w-3.5 h-3.5 text-amber-400" />
-                <span>Agregar Ranura de Foto</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal Preview de Foto Ampliada */}
       {activePreview && (
