@@ -59,7 +59,27 @@ export default function AdminDashboardPage() {
     acceptQuoteAndBook,
     addNotification,
     scheduleSettings,
+    securitySettings,
   } = useApp();
+
+  const activeAdmin =
+    securitySettings?.staffMembers?.find((m) => m.role === 'admin' && m.status === 'active') ||
+    securitySettings?.staffMembers?.[0] || {
+      id: 'staff-admin-default',
+      name: 'Luis Carlos Carranza',
+      phone: '3334884592',
+      role: 'admin',
+      status: 'active',
+    };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0].toUpperCase())
+      .join('');
+  };
 
   const [activeTab, setActiveTab] = useState<AdminTab>('cotizaciones');
   const [quoteFilter, setQuoteFilter] = useState<QuoteStatusFilterType>('all');
@@ -290,18 +310,20 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* User Profile Footer */}
+        {/* User Profile Footer (Dinámico con los usuarios reales del sistema) */}
         <div className="border-t border-slate-800 pt-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-amber-400 text-xs font-mono">
-              PA
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-amber-400 text-xs font-mono shrink-0">
+              {getInitials(activeAdmin.name)}
             </div>
-            <div>
-              <span className="text-xs font-bold text-slate-200 block">Pedro Almonte</span>
-              <span className="text-[10px] text-slate-500 font-mono block">Administrador Principal</span>
+            <div className="min-w-0">
+              <span className="text-xs font-bold text-slate-200 block truncate">{activeAdmin.name}</span>
+              <span className="text-[10px] text-slate-500 font-mono block truncate">
+                {activeAdmin.role === 'admin' ? 'Administrador Principal' : 'Técnico Especialista'}
+              </span>
             </div>
           </div>
-          <span className="w-2 h-2 rounded-full bg-emerald-500" title="Servidor Activo" />
+          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Servidor Activo" />
         </div>
       </aside>
 
