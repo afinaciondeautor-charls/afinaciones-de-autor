@@ -32,7 +32,6 @@ export function getAppBaseUrl(): string {
  */
 function buildWhatsAppUrl(phone: string, text: string): string {
   const cleanPhone = formatWhatsAppPhone(phone);
-  // encodeURIComponent con normalización UTF-8 para garantizar render de emojis
   const encodedText = encodeURIComponent(text);
   return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
 }
@@ -127,22 +126,51 @@ Tu técnico especialista de *Afinaciones de Autor* (${appointment.technicianName
 }
 
 /**
- * Genera el enlace de WhatsApp cuando el servicio ha finalizado con Reporte Técnico
+ * Genera el enlace de WhatsApp cuando el trabajo físico ha terminado y está listo para revisión con el cliente
  */
-export function getWhatsAppCompletedLink(appointment: Appointment): string {
+export function getWhatsAppWorkFinishedReadyForReviewLink(appointment: Appointment): string {
   const baseUrl = getAppBaseUrl();
   const trackingUrl = `${baseUrl}/seguimiento/${appointment.id}`;
 
+  const message = `¡Hola *${appointment.client.name.trim()}*! 🚗 🛠️
+
+Tu técnico especialista (${appointment.technicianName}) ha concluido con éxito los trabajos de afinación en tu *${appointment.vehicle.brand} ${appointment.vehicle.model}*.
+
+En este momento te mostraremos las refacciones sustituidas y el funcionamiento de tu motor para tu entera satisfacción y entrega oficial.
+
+🔍 Puedes consultar el seguimiento en vivo aquí:
+👉 ${trackingUrl}`;
+
+  return buildWhatsAppUrl(appointment.client.phone, message);
+}
+
+/**
+ * Genera el enlace de WhatsApp cuando el servicio ha finalizado, firmado y cobrado con Reporte Técnico
+ */
+export function getWhatsAppCompletedLink(
+  appointment: Appointment,
+  paymentMethodLabel?: string
+): string {
+  const baseUrl = getAppBaseUrl();
+  const trackingUrl = `${baseUrl}/seguimiento/${appointment.id}`;
+
+  const price = appointment.selectedOption === 'agency'
+    ? appointment.quote?.agency.price
+    : appointment.quote?.premium.price;
+
+  const priceText = price ? `$${price.toLocaleString()} MXN` : '';
+  const methodText = paymentMethodLabel ? ` (${paymentMethodLabel})` : '';
+
   const message = `¡Hola *${appointment.client.name.trim()}*! 🚗 🎉
 
-El servicio de afinación para tu *${appointment.vehicle.brand} ${appointment.vehicle.model}* ha finalizado con éxito.
+El servicio de afinación para tu *${appointment.vehicle.brand} ${appointment.vehicle.model}* ha finalizado y quedado *COBRADO Y CERTIFICADO* con éxito${priceText ? ' por ' + priceText + methodText : ''}.
 
-📄 Hemos emitido tu *Reporte Técnico Digital y Póliza de Garantía por Escrito*.
+📄 Hemos adjuntado tu *Reporte Técnico Digital con Firma de Satisfacción y Póliza de Garantía por Escrito*.
 
 🔍 Puedes consultar y descargar tu reporte completo aquí:
 👉 ${trackingUrl}
 
-¡Gracias por elegir la precisión de Afinaciones de Autor!`;
+¡Gracias por elegir la precisión y calidad de Afinaciones de Autor!`;
 
   return buildWhatsAppUrl(appointment.client.phone, message);
 }

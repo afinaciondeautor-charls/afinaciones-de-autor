@@ -60,7 +60,14 @@ interface AppContextType {
   ) => void;
   updateAppointmentStatus: (appointmentId: string, status: AppointmentStatus, note?: string) => void;
   saveServiceRecord: (appointmentId: string, record: Partial<ServiceRecord>) => void;
-  finalizeService: (appointmentId: string, record: Partial<ServiceRecord>) => void;
+  finalizeService: (
+    appointmentId: string,
+    record: Partial<ServiceRecord>,
+    paymentDetails?: {
+      paymentMethod?: Appointment['paymentMethod'];
+      paymentStatus?: Appointment['paymentStatus'];
+    }
+  ) => void;
   addNotification: (notification: Omit<NotificationLog, 'id' | 'timestamp'>) => void;
   rebookAppointment1Click: (appointmentId: string, date: string, timeSlot: string) => string;
   updateScheduleSettings: (settings: Partial<BusinessScheduleSettings>) => void;
@@ -486,7 +493,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  const finalizeService = (appointmentId: string, record: Partial<ServiceRecord>) => {
+  const finalizeService = (
+    appointmentId: string,
+    record: Partial<ServiceRecord>,
+    paymentDetails?: {
+      paymentMethod?: Appointment['paymentMethod'];
+      paymentStatus?: Appointment['paymentStatus'];
+    }
+  ) => {
     setAppointments((prev) => {
       const updated = prev.map((apt) => {
         if (apt.id !== appointmentId) return apt;
@@ -502,6 +516,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return {
           ...apt,
           status: 'completada' as AppointmentStatus,
+          paymentMethod: paymentDetails?.paymentMethod || apt.paymentMethod || 'on_site_card',
+          paymentStatus: paymentDetails?.paymentStatus || 'paid',
           serviceRecord: {
             ...currentRecord,
             ...record,
@@ -521,8 +537,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         channel: 'whatsapp',
         type: 'service_completed_pdf',
         recipient: apt.client.phone,
-        title: '🎉 Servicio Finalizado con Éxito',
-        message: `Hola ${apt.client.name}! Tu servicio ha sido completado satisfactoriamente. Tu póliza de garantía y Reporte Técnico digital certificado ya están disponibles.`,
+        title: '🎉 Servicio Finalizado y Cobrado con Éxito',
+        message: `Hola ${apt.client.name}! Tu servicio ha sido completado y cobrado satisfactoriamente. Tu póliza de garantía y Reporte Técnico digital certificado ya están disponibles.`,
       });
       addNotification({
         appointmentId,

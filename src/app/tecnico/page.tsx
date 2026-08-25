@@ -39,9 +39,18 @@ import {
   ShieldAlert,
   ShieldCheck,
   ChevronLeft,
+  CreditCard,
+  Banknote,
+  DollarSign,
+  QrCode,
+  Smartphone,
 } from 'lucide-react';
 import { Appointment, EvidencePhoto } from '@/types';
-import { getWhatsAppEnRouteLink, getWhatsAppCompletedLink } from '@/lib/whatsapp';
+import {
+  getWhatsAppEnRouteLink,
+  getWhatsAppCompletedLink,
+  getWhatsAppWorkFinishedReadyForReviewLink,
+} from '@/lib/whatsapp';
 import { getLocalDateString, formatDisplayDate } from '@/lib/dateUtils';
 import Link from 'next/link';
 
@@ -57,6 +66,8 @@ export default function TechnicianPage() {
   const [selectedTechId, setSelectedTechId] = useState<string | null>(null);
   const [isSelectingTech, setIsSelectingTech] = useState(false);
   const [isLoadedFromStorage, setIsLoadedFromStorage] = useState(false);
+  const [isHandoverStep, setIsHandoverStep] = useState(false);
+  const [paymentMethodSelected, setPaymentMethodSelected] = useState<Appointment['paymentMethod']>('on_site_card');
 
   useEffect(() => {
     const saved = localStorage.getItem('ada_selected_tech_id');
@@ -268,24 +279,65 @@ export default function TechnicianPage() {
     saveServiceRecord(currentAppointment.id, { installedParts: updated });
   };
 
-  const handleFinalizeService = () => {
+  const handleCompleteMechanicalWork = () => {
     if (!currentAppointment) return;
-    let signatureToSave = signatureData || record?.clientSignatureUrl;
-    if (!signatureToSave) {
-      signatureToSave = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="120" viewBox="0 0 320 120"><rect width="320" height="120" fill="%23F8FAFC" rx="10"/><path d="M 30 70 Q 70 30 110 65 T 190 60 T 270 50" fill="none" stroke="%2308101E" stroke-width="3" stroke-linecap="round"/><text x="30" y="95" font-family="sans-serif" font-size="12" font-weight="bold" fill="%2308101E">${encodeURIComponent(currentAppointment.client.name)}</text><text x="30" y="110" font-family="sans-serif" font-size="9" fill="%23666666">Firma Digital Certificada • Afinaciones de Autor</text></svg>`;
-    }
 
-    finalizeService(currentAppointment.id, {
-      clientSignatureUrl: signatureToSave,
-      signedByName: currentAppointment.client.name,
-      completedAt: new Date().toISOString(),
-      mechanicalObservations: observationsInput || record?.mechanicalObservations || 'Servicio de afinación mayor a domicilio completado satisfactoriamente.',
-      futureRecommendations: recommendationsInput || record?.futureRecommendations || 'Realizar siguiente servicio en 6 meses o 10,000 KM.',
+    saveServiceRecord(currentAppointment.id, {
+      mechanicalObservations: observationsInput || record?.mechanicalObservations || 'Servicio de afinación mayor completado satisfactoriamente.',
+      futureRecommendations: recommendationsInput || record?.futureRecommendations || 'Próximo servicio en 6 meses o 10,000 KM.',
       initialKm: Number(initialKmInput) || record?.initialKm || currentAppointment.vehicle.currentKm || 0,
+      evidencePhotos: record?.evidencePhotos || [],
+      installedParts: record?.installedParts || [],
     });
 
     setIsWorkTimerRunning(false);
+    setIsHandoverStep(true);
+
+    // Enviar WhatsApp al cliente avisándole que el trabajo mecánico terminó y se procederá a la entrega/revisión
+    const waUrl = getWhatsAppWorkFinishedReadyForReviewLink(currentAppointment);
+    window.open(waUrl, '_blank');
+  };
+
+  const handleConfirmHandoverAndPayment = () => {
+    if (!currentAppointment) return;
+
+    let signatureToSave = signatureData || record?.clientSignatureUrl;
+    if (!signatureToSave) {
+      signatureToSave = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="120" viewBox="0 0 320 120"><rect width="320" height="120" fill="%23F8FAFC" rx="10"/><path d="M 30 70 Q 70 30 110 65 T 190 60 T 270 50" fill="none" stroke="%2308101E" stroke-width="3" stroke-linecap="round"/><text x="30" y="95" font-family="sans-serif" font-size="12" font-weight="bold" fill="%2308101E">${encodeURIComponent(currentAppointment.client.name)}</text><text x="30" y="110" font-family="sans-serif" font-size="9" fill="%23666666">Firma de Satisfacción • Afinaciones de Autor</text></svg>`;
+    }
+
+    const methodLabels: Record<string, string> = {
+      cash: 'Efectivo',
+      on_site_card: 'Tarjeta en Sitio (Clip/TPV)',
+      transfer: 'Transferencia Bancaria (SPEI)',
+      online_card: 'Tarjeta Online',
+    };
+    const paymentLabel = methodLabels[paymentMethodSelected || 'on_site_card'] || 'Pago en Sitio';
+
+    finalizeService(
+      currentAppointment.id,
+      {
+        clientSignatureUrl: signatureToSave,
+        signedByName: currentAppointment.client.name,
+        completedAt: new Date().toISOString(),
+        mechanicalObservations: observationsInput || record?.mechanicalObservations || 'Servicio de afinación mayor a domicilio completado satisfactoriamente.',
+        futureRecommendations: recommendationsInput || record?.futureRecommendations || 'Realizar siguiente servicio en 6 meses o 10,000 KM.',
+        initialKm: Number(initialKmInput) || record?.initialKm || currentAppointment.vehicle.currentKm || 0,
+      },
+      {
+        paymentMethod: paymentMethodSelected,
+        paymentStatus: 'paid',
+      }
+    );
+
+    setIsHandoverStep(false);
     setShowReportModal(true);
+
+    const waCompletedUrl = getWhatsAppCompletedLink(
+      { ...currentAppointment, paymentMethod: paymentMethodSelected },
+      paymentLabel
+    );
+    window.open(waCompletedUrl, '_blank');
   };
 
   const formatTimer = (seconds: number) => {
@@ -1122,24 +1174,153 @@ export default function TechnicianPage() {
                       </div>
                     </div>
 
-                    {/* Firma Digital de Conformidad */}
-                    <SignaturePad
-                      onSave={(sig) => setSignatureData(sig)}
-                      existingSignature={record?.clientSignatureUrl}
-                      clientName={currentAppointment.client.name}
-                    />
+                    {!isHandoverStep ? (
+                      /* FASE 1: TRABAJO FÍSICO TERMINADO (SIN PEDIR FIRMA PREMATURA) */
+                      <div className="py-6 flex flex-col items-center justify-center gap-3 w-full border-t border-slate-200 mt-4">
+                        <button
+                          type="button"
+                          onClick={handleCompleteMechanicalWork}
+                          className="w-full max-w-md py-4 px-6 bg-[#08101E] hover:bg-slate-900 text-white font-bold text-sm sm:text-base rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-slate-950/20 transition cursor-pointer active:scale-98 mx-auto"
+                        >
+                          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                          <span>Concluir Trabajo & Notificar al Cliente</span>
+                        </button>
+                        <p className="text-[11px] text-slate-500 text-center max-w-sm">
+                          Al hacer clic se detendrá el cronómetro, se guardarán las fotos/notas y se notificará por WhatsApp al cliente que su vehículo está listo para la entrega y demostración de piezas.
+                        </p>
+                      </div>
+                    ) : (
+                      /* FASE 2: ENTREGA, FIRMA DE SATISFACCIÓN Y COBRO EN SITIO */
+                      <div className="space-y-6 pt-4 border-t-2 border-emerald-500 mt-6 bg-emerald-50/40 p-5 sm:p-6 rounded-3xl border border-emerald-200">
+                        {/* Header Entrega */}
+                        <div className="space-y-1 text-center sm:text-left">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold font-mono">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
+                            <span>Paso Final: Entrega & Cobro</span>
+                          </div>
+                          <h3 className="text-lg font-black text-slate-900">
+                            Entrega del Vehículo, Firma de Satisfacción & Cobro
+                          </h3>
+                          <p className="text-xs text-slate-600 leading-relaxed">
+                            Muestra las piezas sustituidas y el estado del motor a <strong>{currentAppointment.client.name}</strong>. Solicita su firma de conformidad y confirma el método de cobro acordado.
+                          </p>
+                        </div>
 
-                    {/* Botón Finalizar Servicio Centrado con Margen */}
-                    <div className="py-6 flex justify-center w-full">
-                      <button
-                        type="button"
-                        onClick={handleFinalizeService}
-                        className="w-full max-w-md py-3.5 px-6 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm sm:text-base rounded-2xl flex items-center justify-center gap-2.5 shadow-md shadow-emerald-900/10 transition cursor-pointer active:scale-98 mx-auto"
-                      >
-                        <CheckCircle2 className="w-5 h-5 text-white" />
-                        <span>Finalizar Servicio</span>
-                      </button>
-                    </div>
+                        {/* Tarjeta de Resumen de Cobro */}
+                        <div className="bg-white p-5 rounded-2xl border border-emerald-200 shadow-2xs space-y-4">
+                          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <div className="space-y-0.5">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">
+                                Total del Servicio a Cobrar:
+                              </span>
+                              <div className="text-xl sm:text-2xl font-black text-slate-900">
+                                {currentAppointment.selectedOption === 'agency'
+                                  ? `$${(currentAppointment.quote?.agency.price || 3300).toLocaleString()} MXN`
+                                  : `$${(currentAppointment.quote?.premium.price || 3750).toLocaleString()} MXN`}
+                              </div>
+                            </div>
+                            <span className="text-xs font-mono font-bold px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
+                              {currentAppointment.selectedOption === 'agency' ? 'Opción Agencia' : 'Opción De Autor'}
+                            </span>
+                          </div>
+
+                          {/* Selector de Método de Pago */}
+                          <div className="space-y-2">
+                            <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider font-mono">
+                              Selecciona el Método de Pago Acordado:
+                            </label>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                              <button
+                                type="button"
+                                onClick={() => setPaymentMethodSelected('cash')}
+                                className={`p-3.5 rounded-xl border text-left transition flex items-center gap-3 cursor-pointer ${
+                                  paymentMethodSelected === 'cash'
+                                    ? 'bg-emerald-900 text-white border-emerald-950 shadow-xs'
+                                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                                }`}
+                              >
+                                <Banknote className={`w-5 h-5 shrink-0 ${paymentMethodSelected === 'cash' ? 'text-amber-400' : 'text-slate-500'}`} />
+                                <div>
+                                  <span className="text-xs font-bold block">Efectivo</span>
+                                  <span className="text-[10px] opacity-80 block">Cobrado en mano</span>
+                                </div>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setPaymentMethodSelected('on_site_card')}
+                                className={`p-3.5 rounded-xl border text-left transition flex items-center gap-3 cursor-pointer ${
+                                  paymentMethodSelected === 'on_site_card'
+                                    ? 'bg-emerald-900 text-white border-emerald-950 shadow-xs'
+                                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                                }`}
+                              >
+                                <CreditCard className={`w-5 h-5 shrink-0 ${paymentMethodSelected === 'on_site_card' ? 'text-amber-400' : 'text-slate-500'}`} />
+                                <div>
+                                  <span className="text-xs font-bold block">Tarjeta en Sitio</span>
+                                  <span className="text-[10px] opacity-80 block">Terminal Clip / TPV</span>
+                                </div>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setPaymentMethodSelected('transfer')}
+                                className={`p-3.5 rounded-xl border text-left transition flex items-center gap-3 cursor-pointer ${
+                                  paymentMethodSelected === 'transfer'
+                                    ? 'bg-emerald-900 text-white border-emerald-950 shadow-xs'
+                                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                                }`}
+                              >
+                                <Smartphone className={`w-5 h-5 shrink-0 ${paymentMethodSelected === 'transfer' ? 'text-amber-400' : 'text-slate-500'}`} />
+                                <div>
+                                  <span className="text-xs font-bold block">Transferencia</span>
+                                  <span className="text-[10px] opacity-80 block">SPEI Verificado</span>
+                                </div>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Firma de Satisfacción del Cliente */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-900 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                              <span>Firma de Satisfacción del Cliente:</span>
+                            </label>
+                            <span className="text-[10px] text-slate-500 font-mono">
+                              Conformidad con servicio y refacciones
+                            </span>
+                          </div>
+
+                          <SignaturePad
+                            onSave={(sig) => setSignatureData(sig)}
+                            existingSignature={record?.clientSignatureUrl}
+                            clientName={currentAppointment.client.name}
+                          />
+                        </div>
+
+                        {/* Acciones Finales de Cobro */}
+                        <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setIsHandoverStep(false)}
+                            className="w-full sm:w-auto px-5 py-3 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 rounded-xl transition cursor-pointer"
+                          >
+                            ← Volver a detalles técnicos
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={handleConfirmHandoverAndPayment}
+                            className="w-full sm:w-auto py-4 px-8 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm sm:text-base rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-emerald-900/20 transition cursor-pointer active:scale-98"
+                          >
+                            <CheckCircle2 className="w-5 h-5 text-white" />
+                            <span>Confirmar Cobro y Enviar Firma de Satisfacción</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
