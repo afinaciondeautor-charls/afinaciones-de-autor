@@ -83,6 +83,8 @@ interface AppContextType {
   verifyAccessPin: (role: 'admin' | 'technician', pinInput: string) => boolean;
   resetToMockData: () => void;
   refreshAppState: () => Promise<void>;
+  deleteAppointment: (appointmentId: string) => Promise<void>;
+  clearAllAppointments: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -710,12 +712,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return false;
   };
 
+  const deleteAppointment = async (appointmentId: string) => {
+    const updated = appointments.filter((a) => a.id !== appointmentId);
+    setAppointments(updated);
+    try {
+      await fetch('/api/app-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appointments: updated,
+          notifications,
+          scheduleSettings,
+          securitySettings,
+          deletedAppointmentId: appointmentId,
+        }),
+      });
+    } catch (e) {
+      console.error('Error deleting appointment:', e);
+    }
+  };
+
+  const clearAllAppointments = async () => {
+    setAppointments([]);
+    setNotifications([]);
+    try {
+      await fetch('/api/app-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appointments: [],
+          notifications: [],
+          scheduleSettings,
+          securitySettings,
+          clearAllAppointments: true,
+        }),
+      });
+    } catch (e) {
+      console.error('Error clearing all appointments:', e);
+    }
+  };
+
   const resetToMockData = () => {
     setAppointments(INITIAL_APPOINTMENTS);
     setNotifications(INITIAL_NOTIFICATIONS);
     setScheduleSettings(INITIAL_SCHEDULE_SETTINGS);
     setSecuritySettings(INITIAL_SECURITY_SETTINGS);
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
     syncToServer(
       INITIAL_APPOINTMENTS,
       INITIAL_NOTIFICATIONS,
@@ -755,6 +796,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         removeStaffMember,
         verifyAccessPin,
         resetToMockData,
+        refreshAppState,
+        deleteAppointment,
+        clearAllAppointments,
       }}
     >
       {children}

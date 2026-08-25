@@ -30,6 +30,8 @@ import {
   Plus,
   KeyRound,
   Users,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import AdminRemisionQuoter from '@/components/AdminRemisionQuoter';
 import AdminScheduleCalendar from '@/components/AdminScheduleCalendar';
@@ -60,6 +62,8 @@ export default function AdminDashboardPage() {
     addNotification,
     scheduleSettings,
     securitySettings,
+    deleteAppointment,
+    clearAllAppointments,
   } = useApp();
 
   const activeAdmin =
@@ -89,6 +93,9 @@ export default function AdminDashboardPage() {
   const [activeQuotingAptId, setActiveQuotingAptId] = useState<string | null>(null);
   const [showDirectServiceModal, setShowDirectServiceModal] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
+  const [showClearAllModal, setShowClearAllModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Counts by status
   const pendingQuotes = appointments.filter((a) => a.status === 'solicitud_pendiente');
@@ -359,9 +366,20 @@ export default function AdminDashboardPage() {
               onClick={() => setShowDirectServiceModal(true)}
               className="flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-lg shadow-xs transition cursor-pointer active:scale-95 shrink-0"
             >
-              <Plus className="w-4 h-4 text-slate-950" />
               <span>+ Realizar Cotización</span>
             </button>
+
+            {appointments.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowClearAllModal(true)}
+                className="hidden sm:flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs px-3 py-1.5 rounded-lg border border-rose-200 transition cursor-pointer"
+                title="Vaciar todas las citas y registros de prueba"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                <span>Vaciar Citas</span>
+              </button>
+            )}
 
             {pendingQuotes.length > 0 && (
               <button
@@ -727,6 +745,16 @@ export default function AdminDashboardPage() {
                                     <span>Reporte PDF</span>
                                   </button>
                                 )}
+
+                                {/* Botón Eliminar Servicio con Confirmación */}
+                                <button
+                                  type="button"
+                                  onClick={() => setAppointmentToDelete(apt)}
+                                  className="p-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl border border-rose-200 transition cursor-pointer"
+                                  title="Eliminar este servicio permanentemente"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
                               </div>
                             </div>
                           </div>
@@ -790,8 +818,16 @@ export default function AdminDashboardPage() {
                         <span className="font-mono text-xs text-slate-400">{apt.folio}</span>
                       </div>
 
-                      <div className="bg-slate-50 p-3 rounded-xl text-xs text-slate-700 border border-slate-100">
-                        <strong>Dirección:</strong> {apt.client.address}
+                      <div className="bg-slate-50 p-3 rounded-xl text-xs text-slate-700 border border-slate-100 flex items-center justify-between gap-3">
+                        <p><strong>Dirección:</strong> {apt.client.address}</p>
+                        <button
+                          type="button"
+                          onClick={() => setAppointmentToDelete(apt)}
+                          className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg border border-rose-200 transition cursor-pointer shrink-0"
+                          title="Eliminar este servicio"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   ))
@@ -895,6 +931,7 @@ export default function AdminDashboardPage() {
           }}
         />
       )}
+
       {/* Modal Realizar Cotización / Nuevo Servicio Directo */}
       {showDirectServiceModal && (
         <AdminDirectServiceModal
@@ -904,6 +941,86 @@ export default function AdminDashboardPage() {
             setActiveTab('cotizaciones');
           }}
         />
+      )}
+
+      {/* Modal de Confirmación para Eliminar Cita Individual */}
+      {appointmentToDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 border border-slate-200">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div className="text-center space-y-1.5">
+              <h3 className="text-lg font-black text-slate-900">¿Eliminar este servicio?</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Estás por eliminar permanentemente el servicio <strong>{appointmentToDelete.folio}</strong> ({appointmentToDelete.vehicle.brand} {appointmentToDelete.vehicle.model}) de <strong>{appointmentToDelete.client.name}</strong>. Esta acción no se puede deshacer.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setAppointmentToDelete(null)}
+                className="py-3 px-4 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={async () => {
+                  setIsDeleting(true);
+                  await deleteAppointment(appointmentToDelete.id);
+                  setIsDeleting(false);
+                  setAppointmentToDelete(null);
+                }}
+                className="py-3 px-4 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>{isDeleting ? 'Eliminando...' : 'Sí, Eliminar'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmación para Vaciar Toda la Base de Datos */}
+      {showClearAllModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 border border-slate-200">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold mx-auto">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div className="text-center space-y-1.5">
+              <h3 className="text-lg font-black text-slate-900">¿Vaciar todas las citas?</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Se eliminarán todos los registros de citas, cotizaciones y notificaciones para dejar el sistema 100% limpio en cero (0).
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowClearAllModal(false)}
+                className="py-3 px-4 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={async () => {
+                  setIsDeleting(true);
+                  await clearAllAppointments();
+                  setIsDeleting(false);
+                  setShowClearAllModal(false);
+                }}
+                className="py-3 px-4 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>{isDeleting ? 'Vaciando...' : 'Sí, Vaciar Base'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

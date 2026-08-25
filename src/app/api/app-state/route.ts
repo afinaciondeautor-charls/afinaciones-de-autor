@@ -48,8 +48,8 @@ function loadLocalState(): ServerState {
       const parsed = JSON.parse(raw);
       if (parsed) {
         memoryState = {
-          appointments: parsed.appointments && parsed.appointments.length > 0 ? parsed.appointments : INITIAL_APPOINTMENTS,
-          notifications: parsed.notifications || INITIAL_NOTIFICATIONS,
+          appointments: Array.isArray(parsed.appointments) ? parsed.appointments : INITIAL_APPOINTMENTS,
+          notifications: Array.isArray(parsed.notifications) ? parsed.notifications : INITIAL_NOTIFICATIONS,
           scheduleSettings: parsed.scheduleSettings || INITIAL_SCHEDULE_SETTINGS,
           securitySettings: parsed.securitySettings?.staffMembers?.length > 0 ? parsed.securitySettings : INITIAL_SECURITY_SETTINGS,
         };
@@ -146,6 +146,13 @@ export async function POST(request: Request) {
 
     if (isSupabaseConfigured) {
       try {
+        if (body.clearAllAppointments) {
+          await supabase.from('appointments').delete().neq('id', '_none_');
+          await supabase.from('notifications').delete().neq('id', '_none_');
+        } else if (body.deletedAppointmentId) {
+          await supabase.from('appointments').delete().eq('id', body.deletedAppointmentId);
+        }
+
         if (body.appointments && Array.isArray(body.appointments)) {
           // Upsert all appointments
           const aptsRows = body.appointments.map((a: Appointment) => ({
@@ -203,8 +210,8 @@ export async function POST(request: Request) {
 
     const currentLocal = loadLocalState();
     const updatedState: ServerState = {
-      appointments: body.appointments || currentLocal.appointments,
-      notifications: body.notifications || currentLocal.notifications,
+      appointments: Array.isArray(body.appointments) ? body.appointments : currentLocal.appointments,
+      notifications: Array.isArray(body.notifications) ? body.notifications : currentLocal.notifications,
       scheduleSettings: body.scheduleSettings || currentLocal.scheduleSettings,
       securitySettings: body.securitySettings || currentLocal.securitySettings,
     };
