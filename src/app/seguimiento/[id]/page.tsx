@@ -81,26 +81,25 @@ export default function TrackingPage() {
     );
   }
 
-  // 6 Real Lifecycle Stages (usando el estatus en vivo ultra-ligero)
+  // 7 Real Lifecycle Stages (usando el estatus en vivo ultra-ligero)
   const effectiveStatus = liveStatus || appointment.status;
   const isPending = effectiveStatus === 'solicitud_pendiente';
   const isQuoted = effectiveStatus === 'cotizado' && !appointment.selectedOption;
-  const isApprovedByClient =
-    effectiveStatus === 'aprobada_por_cliente' ||
-    (effectiveStatus === 'cotizado' && !!appointment.selectedOption);
+  const isApprovedByClient = effectiveStatus === 'aprobada_por_cliente';
   const isConfirmed = effectiveStatus === 'confirmada';
   const isEnCamino = effectiveStatus === 'en_camino';
   const isEnServicio = effectiveStatus === 'en_servicio';
   const isCompleted = effectiveStatus === 'completada';
 
-  // Determine active step index (1 to 6)
+  // Determine active step index (1 to 7)
   let currentStep = 1;
   if (isPending) currentStep = 1;
   else if (isQuoted) currentStep = 2;
-  else if (isApprovedByClient || isConfirmed) currentStep = 3;
-  else if (isEnCamino) currentStep = 4;
-  else if (isEnServicio) currentStep = 5;
-  else if (isCompleted) currentStep = 6;
+  else if (isApprovedByClient) currentStep = 3;
+  else if (isConfirmed) currentStep = 4;
+  else if (isEnCamino) currentStep = 5;
+  else if (isEnServicio) currentStep = 6;
+  else if (isCompleted) currentStep = 7;
 
   const handleClientApproveQuote = (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,10 +119,11 @@ export default function TrackingPage() {
   const stepsList = [
     { num: 1, label: 'Cotización Solicitada', desc: 'Revisión técnica de VIN' },
     { num: 2, label: 'Propuestas Enviadas', desc: 'Presupuesto dual listo' },
-    { num: 3, label: 'Cotización Aprobada', desc: 'Cita y refacciones listas' },
-    { num: 4, label: 'Técnico en Camino', desc: 'En ruta a tu domicilio' },
-    { num: 5, label: 'En Servicio & Fotos', desc: 'Diagnóstico y afinación' },
-    { num: 6, label: 'Orden Realizada', desc: 'Garantía y reporte PDF' },
+    { num: 3, label: 'Cotización Aprobada', desc: 'Aprobada por cliente' },
+    { num: 4, label: 'Cita Confirmada', desc: 'Fecha y hora agendada' },
+    { num: 5, label: 'Técnico en Camino', desc: 'En ruta a tu domicilio' },
+    { num: 6, label: 'En Servicio & Fotos', desc: 'Diagnóstico y afinación' },
+    { num: 7, label: 'Orden Realizada', desc: 'Garantía y reporte PDF' },
   ];
 
   return (
@@ -142,10 +142,10 @@ export default function TrackingPage() {
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-              {appointment.vehicle.brand} {appointment.vehicle.model} ({appointment.vehicle.year})
+              {appointment.vehicle?.brand || 'Vehículo'} {appointment.vehicle?.model || ''} ({appointment.vehicle?.year || ''})
             </h1>
             <p className="text-xs text-slate-500 font-mono mt-0.5">
-              Placas: <strong className="text-slate-800">{appointment.vehicle.plates || 'S/P'}</strong> • VIN: <strong className="text-slate-800">{appointment.vehicle.vin}</strong>
+              Placas: <strong className="text-slate-800">{appointment.vehicle?.plates || 'S/P'}</strong> • VIN: <strong className="text-slate-800">{appointment.vehicle?.vin || 'N/D'}</strong>
             </p>
           </div>
 
@@ -160,18 +160,18 @@ export default function TrackingPage() {
           )}
         </div>
 
-        {/* 6-Step Visual Stepper */}
+        {/* 7-Step Visual Stepper */}
         <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-2xs space-y-5">
           <div className="flex items-center justify-between">
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 font-mono">
               Estatus del Servicio en Tiempo Real
             </h2>
             <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
-              Paso {currentStep} de 6
+              Paso {currentStep} de 7
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
             {stepsList.map((st) => {
               // Determinamos el estado visual de cada paso:
               let statusMode: 'done' | 'active_pulse' | 'waiting' = 'waiting';
@@ -183,21 +183,27 @@ export default function TrackingPage() {
                 else if (isQuoted) statusMode = 'active_pulse';
                 else statusMode = 'done';
               } else if (st.num === 3) {
-                // Paso 3 (Cotización Aprobada / Cita Confirmada): Si ya fue aprobada/confirmada, se muestra en VERDE completado
+                // Paso 3 (Cotización Aprobada por Cliente)
                 if (isPending || isQuoted) statusMode = 'waiting';
+                else if (isApprovedByClient) statusMode = 'active_pulse';
                 else statusMode = 'done';
               } else if (st.num === 4) {
-                // Paso 4 (Técnico en Camino): Pulso naranja si va en camino, verde si ya avanzó, espera si no
+                // Paso 4 (Cita Confirmada por Afinaciones de Autor)
+                if (isPending || isQuoted || isApprovedByClient) statusMode = 'waiting';
+                else if (isConfirmed) statusMode = 'active_pulse';
+                else statusMode = 'done';
+              } else if (st.num === 5) {
+                // Paso 5 (Técnico en Camino)
                 if (isEnCamino) statusMode = 'active_pulse';
                 else if (isEnServicio || isCompleted) statusMode = 'done';
                 else statusMode = 'waiting';
-              } else if (st.num === 5) {
-                // Paso 5 (En Servicio & Fotos): Pulso naranja si está en servicio, verde si finalizó
+              } else if (st.num === 6) {
+                // Paso 6 (En Servicio & Fotos)
                 if (isEnServicio) statusMode = 'active_pulse';
                 else if (isCompleted) statusMode = 'done';
                 else statusMode = 'waiting';
-              } else if (st.num === 6) {
-                // Paso 6 (Orden Realizada): Verde si ya se completó
+              } else if (st.num === 7) {
+                // Paso 7 (Orden Realizada)
                 if (isCompleted) statusMode = 'done';
                 else statusMode = 'waiting';
               }
@@ -407,6 +413,116 @@ export default function TrackingPage() {
                 </button>
               </div>
             </form>
+          </div>
+        )}
+
+        {/* ESTADO 3: COTIZACIÓN APROBADA POR EL CLIENTE */}
+        {isApprovedByClient && (
+          <div className="bg-white border border-amber-300/80 rounded-3xl p-6 sm:p-7 shadow-2xs space-y-3 bg-gradient-to-r from-amber-50/40 to-white">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 border border-amber-200 flex items-center justify-center font-bold shrink-0">
+                <Clock className="w-6 h-6 text-amber-700" />
+              </div>
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold font-mono">
+                  <span>Paso 3 de 7 • Aprobada por Cliente</span>
+                </div>
+                <h3 className="text-base font-bold text-slate-900">
+                  ¡Gracias! Has aprobado tu cotización con éxito
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
+                  Estamos coordinando la asignación de tu unidad móvil y refacciones para tu <strong>{appointment.vehicle?.brand} {appointment.vehicle?.model}</strong>. En breve el Administrador confirmará oficialmente tu cita para la fecha y horario solicitado.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ESTADO 4: CITA CONFIRMADA POR AFINACIONES DE AUTOR */}
+        {isConfirmed && (
+          <div className="bg-white border border-emerald-300 rounded-3xl p-6 sm:p-7 shadow-2xs space-y-3 bg-gradient-to-r from-emerald-50/50 to-white">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center justify-center font-bold shrink-0">
+                <CheckCircle2 className="w-6 h-6 text-emerald-700" />
+              </div>
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-bold font-mono">
+                  <span>Paso 4 de 7 • Cita Confirmada Oficialmente</span>
+                </div>
+                <h3 className="text-base font-bold text-slate-900">
+                  ¡Afinaciones de Autor confirmó tu Cita!
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
+                  Tu servicio ha quedado oficialmente confirmado y programado para el <strong>{formatDisplayDate(appointment.scheduledDate)}</strong> en el horario de <strong>{appointment.timeSlot}</strong>. Tu técnico asignado es <strong>{appointment.technicianName || 'Especialista de Autor'}</strong>.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ESTADO 5: TÉCNICO EN CAMINO */}
+        {isEnCamino && (
+          <div className="bg-white border border-blue-300 rounded-3xl p-6 sm:p-7 shadow-2xs space-y-3 bg-gradient-to-r from-blue-50/50 to-white">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-800 border border-blue-200 flex items-center justify-center font-bold shrink-0">
+                <Navigation className="w-6 h-6 text-blue-700 animate-pulse" />
+              </div>
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 text-[10px] font-bold font-mono">
+                  <span>Paso 5 de 7 • Técnico en Camino</span>
+                </div>
+                <h3 className="text-base font-bold text-slate-900">
+                  ¡Tu técnico especialista va en camino a tu domicilio!
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
+                  <strong>{appointment.technicianName || 'El especialista'}</strong> ha iniciado el traslado hacia tu domicilio ({appointment.client?.address || 'tu ubicación'}). Tiempo estimado de llegada: 25 - 35 minutos.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ESTADO 6: EN SERVICIO */}
+        {isEnServicio && (
+          <div className="bg-white border border-amber-300 rounded-3xl p-6 sm:p-7 shadow-2xs space-y-3 bg-gradient-to-r from-amber-50/50 to-white">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 border border-amber-200 flex items-center justify-center font-bold shrink-0">
+                <Wrench className="w-6 h-6 text-amber-700 animate-spin" />
+              </div>
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold font-mono">
+                  <span>Paso 6 de 7 • En Servicio & Evidencias</span>
+                </div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Servicio en ejecución y captura de evidencias en sitio
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
+                  El técnico está realizando la afinación mayor y documentando las fotos de cada pieza reemplazada (antes vs después). Al concluir te mostrará las piezas y el funcionamiento de tu motor.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ESTADO 7: COMPLETADA */}
+        {isCompleted && (
+          <div className="bg-white border border-emerald-300 rounded-3xl p-6 sm:p-7 shadow-2xs space-y-3 bg-gradient-to-r from-emerald-50/50 to-white">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center justify-center font-bold shrink-0">
+                <CheckCircle2 className="w-6 h-6 text-emerald-700" />
+              </div>
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-bold font-mono">
+                  <span>Paso 7 de 7 • Servicio Concluido & Certificado</span>
+                </div>
+                <h3 className="text-base font-bold text-slate-900">
+                  ¡Servicio Finalizado con Éxito!
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
+                  Tu afinación ha quedado finalizada, cobrada y con tu Reporte Técnico Oficial y Póliza de Garantía por Escrito generada.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
