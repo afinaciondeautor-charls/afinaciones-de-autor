@@ -57,31 +57,35 @@ export default function EvidenceManager({
     const seenCategories = new Set<string>();
 
     // 1. Si la cotización tiene remisionItems (partidas detalladas por el admin)
-    if (quote?.remisionItems && quote.remisionItems.length > 0) {
-      quote.remisionItems.forEach((item) => {
-        const brand = selectedOption === 'agency' ? item.agencyBrand : item.premiumBrand;
-        const catKey = item.id || `rem_${item.description.toLowerCase().replace(/\s+/g, '_')}`;
+    if (quote?.remisionItems && Array.isArray(quote.remisionItems) && quote.remisionItems.length > 0) {
+      quote.remisionItems.forEach((item, idx) => {
+        if (!item) return;
+        const brand = (selectedOption === 'agency' ? item.agencyBrand : item.premiumBrand) || 'OEM / Autor';
+        const desc = item.description || `Refacción ${idx + 1}`;
+        const catKey = item.id || `rem_${desc.toLowerCase().replace(/\s+/g, '_')}`;
         if (!seenCategories.has(catKey)) {
           seenCategories.add(catKey);
           list.push({
             category: catKey,
-            label: item.description,
-            subtitle: `Especificación: ${brand} (${item.quantity} ${item.unit})`,
-            defaultNotes: `Reemplazo de ${item.description} - ${brand}.`,
+            label: desc,
+            subtitle: `Especificación: ${brand} (${item.quantity || 1} ${item.unit || 'Pza'})`,
+            defaultNotes: `Reemplazo de ${desc} - ${brand}.`,
           });
         }
       });
-    } else if (installedParts && installedParts.length > 0) {
+    } else if (installedParts && Array.isArray(installedParts) && installedParts.length > 0) {
       // 2. Si no hay remisionItems, usar installedParts de la cita
-      installedParts.forEach((part) => {
-        const catKey = part.id || `part_${part.name.toLowerCase().replace(/\s+/g, '_')}`;
+      installedParts.forEach((part, idx) => {
+        if (!part) return;
+        const partName = part.name || `Refacción ${idx + 1}`;
+        const catKey = part.id || `part_${partName.toLowerCase().replace(/\s+/g, '_')}`;
         if (!seenCategories.has(catKey)) {
           seenCategories.add(catKey);
           list.push({
             category: catKey,
-            label: part.name,
+            label: partName,
             subtitle: `Marca: ${part.brand || 'Original/Autor'}`,
-            defaultNotes: `Instalación y reemplazo de ${part.name}.`,
+            defaultNotes: `Instalación y reemplazo de ${partName}.`,
           });
         }
       });

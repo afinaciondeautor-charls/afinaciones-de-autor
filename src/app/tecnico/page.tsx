@@ -145,7 +145,7 @@ export default function TechnicianPage() {
 
   useEffect(() => {
     if (currentAppointment) {
-      setInitialKmInput(String(currentAppointment.vehicle.currentKm || currentAppointment.serviceRecord?.initialKm || ''));
+      setInitialKmInput(String(currentAppointment.vehicle?.currentKm || currentAppointment.serviceRecord?.initialKm || ''));
       setObservationsInput(
         currentAppointment.serviceRecord?.mechanicalObservations ||
           'Servicio de afinación mayor realizado con éxito. Inyectores descarbonizados por ultrasonido, bujías calibradas y escaneo OBD-II sin códigos de falla.'
@@ -838,10 +838,10 @@ export default function TechnicianPage() {
                       {currentAppointment.folio}
                     </span>
                     <h2 className="text-lg font-black text-slate-900 mt-1.5">
-                      {currentAppointment.vehicle.brand} {currentAppointment.vehicle.model} ({currentAppointment.vehicle.year})
+                      {currentAppointment.vehicle?.brand || 'Vehículo'} {currentAppointment.vehicle?.model || ''} ({currentAppointment.vehicle?.year || ''})
                     </h2>
                     <p className="text-xs font-mono text-slate-500 mt-0.5">
-                      Placas: <strong className="text-slate-800">{currentAppointment.vehicle.plates}</strong> • VIN: <strong className="text-slate-700">{currentAppointment.vehicle.vin}</strong>
+                      Placas: <strong className="text-slate-800">{currentAppointment.vehicle?.plates || 'S/P'}</strong> • VIN: <strong className="text-slate-700">{currentAppointment.vehicle?.vin || 'N/D'}</strong>
                     </p>
                   </div>
                 </div>
@@ -850,17 +850,19 @@ export default function TechnicianPage() {
                 <div className="flex items-center justify-between text-xs bg-slate-50 border border-slate-200/80 p-3.5 rounded-xl">
                   <div className="space-y-0.5">
                     <span className="text-slate-400 block font-medium text-[10px] uppercase">Cliente de Visita:</span>
-                    <strong className="text-slate-900 text-sm block">{currentAppointment.client.name}</strong>
-                    <p className="text-slate-600 line-clamp-1">{currentAppointment.client.address}</p>
+                    <strong className="text-slate-900 text-sm block">{currentAppointment.client?.name || 'Cliente'}</strong>
+                    <p className="text-slate-600 line-clamp-1">{currentAppointment.client?.address || 'Domicilio del cliente'}</p>
                   </div>
 
-                  <a
-                    href={`tel:${currentAppointment.client.phone}`}
-                    className="p-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl flex items-center justify-center shadow-xs shrink-0 transition"
-                    title="Llamar al cliente"
-                  >
-                    <Phone className="w-4 h-4" />
-                  </a>
+                  {currentAppointment.client?.phone && (
+                    <a
+                      href={`tel:${currentAppointment.client.phone}`}
+                      className="p-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl flex items-center justify-center shadow-xs shrink-0 transition"
+                      title="Llamar al cliente"
+                    >
+                      <Phone className="w-4 h-4" />
+                    </a>
+                  )}
                 </div>
 
                 {/* PASO 1: TRASLADO */}
@@ -1083,13 +1085,13 @@ export default function TechnicianPage() {
                                 Total del Servicio a Cobrar:
                               </span>
                               <div className="text-xl sm:text-2xl font-black text-slate-900">
-                                {currentAppointment.selectedOption === 'agency'
-                                  ? `$${(currentAppointment.quote?.agency.price || 3300).toLocaleString()} MXN`
-                                  : `$${(currentAppointment.quote?.premium.price || 3750).toLocaleString()} MXN`}
+                                {currentAppointment?.selectedOption === 'agency'
+                                  ? `$${(currentAppointment?.quote?.agency?.price || 3300).toLocaleString()} MXN`
+                                  : `$${(currentAppointment?.quote?.premium?.price || 3750).toLocaleString()} MXN`}
                               </div>
                             </div>
                             <span className="text-xs font-mono font-bold px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
-                              {currentAppointment.selectedOption === 'agency' ? 'Opción Agencia' : 'Opción De Autor'}
+                              {currentAppointment?.selectedOption === 'agency' ? 'Opción Agencia' : 'Opción De Autor'}
                             </span>
                           </div>
 
