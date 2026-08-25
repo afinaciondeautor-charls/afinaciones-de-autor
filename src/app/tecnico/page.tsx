@@ -17,6 +17,7 @@ import {
   FileText,
   AlertTriangle,
   Play,
+  Pause,
   Square,
   MapPin,
   Camera,
@@ -319,8 +320,9 @@ export default function TechnicianPage() {
   };
 
   const formatTimer = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const s = typeof seconds === 'number' && !isNaN(seconds) && seconds >= 0 ? seconds : 0;
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
