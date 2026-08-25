@@ -79,8 +79,6 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY = 'afinaciones_de_autor_state_v3';
-
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [appointments, setAppointments] = useState<Appointment[]>(INITIAL_APPOINTMENTS);
   const [notifications, setNotifications] = useState<NotificationLog[]>(INITIAL_NOTIFICATIONS);
@@ -89,7 +87,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeRole, setActiveRole] = useState<'client' | 'technician' | 'admin'>('client');
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Sync state to Server API & localStorage
+  // Enviar cambios directamente al Servidor / Base de Datos
   const syncToServer = async (
     newApts?: Appointment[],
     newNotifs?: NotificationLog[],
@@ -108,123 +106,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload));
     } catch (e) {
       console.error('Failed to sync to server', e);
     }
   };
 
-  // Initial load from server API
+  // Carga inicial directa desde el Servidor / Base de Datos
   useEffect(() => {
     const fetchInitial = async () => {
-      let localSaved: any = null;
-      try {
-        const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (saved) localSaved = JSON.parse(saved);
-      } catch (e) {
-        // ignore
-      }
-
       try {
         const res = await fetch('/api/app-state');
         if (res.ok) {
           const data = await res.json();
-
-          // Citas: Si el servidor o local tiene datos, preservarlos; si no, usar INITIAL_APPOINTMENTS
-          if (data.appointments && data.appointments.length > 0) {
+          if (data.appointments && Array.isArray(data.appointments)) {
             setAppointments(data.appointments);
-          } else if (localSaved?.appointments && localSaved.appointments.length > 0) {
-            setAppointments(localSaved.appointments);
-            syncToServer(localSaved.appointments, localSaved.notifications, localSaved.scheduleSettings, localSaved.securitySettings);
-          } else {
-            setAppointments(INITIAL_APPOINTMENTS);
-            syncToServer(INITIAL_APPOINTMENTS, data.notifications, data.scheduleSettings, data.securitySettings);
           }
-
-          // Usuarios y Personal: Nunca permitir que se quede vacío
-          if (data.securitySettings?.staffMembers && data.securitySettings.staffMembers.length > 0) {
-            setSecuritySettings(data.securitySettings);
-          } else if (localSaved?.securitySettings?.staffMembers && localSaved.securitySettings.staffMembers.length > 0) {
-            setSecuritySettings(localSaved.securitySettings);
-          } else {
-            setSecuritySettings(INITIAL_SECURITY_SETTINGS);
-          }
-
           if (data.notifications) setNotifications(data.notifications);
           if (data.scheduleSettings) setScheduleSettings(data.scheduleSettings);
+          if (data.securitySettings) setSecuritySettings(data.securitySettings);
         }
       } catch (e) {
-        console.error('Failed to fetch server state, falling back to local', e);
-        if (localSaved) {
-          if (localSaved.appointments && localSaved.appointments.length > 0) {
-            setAppointments(localSaved.appointments);
-          } else {
-            setAppointments(INITIAL_APPOINTMENTS);
-          }
-          if (localSaved.notifications) setNotifications(localSaved.notifications);
-          if (localSaved.scheduleSettings) setScheduleSettings(localSaved.scheduleSettings);
-          if (localSaved.securitySettings?.staffMembers && localSaved.securitySettings.staffMembers.length > 0) {
-            setSecuritySettings(localSaved.securitySettings);
-          } else {
-            setSecuritySettings(INITIAL_SECURITY_SETTINGS);
-          }
-        }
+        console.error('Failed to fetch server state:', e);
       }
       setIsLoaded(true);
     };
 
     fetchInitial();
 
-    // Real-time polling every 2.5 seconds to sync Admin & Mobile devices seamlessly
+    // Sincronización continua en tiempo real desde el Servidor
     const interval = setInterval(async () => {
       try {
         const res = await fetch('/api/app-state');
         if (res.ok) {
           const data = await res.json();
-          if (data.appointments && Array.isArray(data.appointments) && data.appointments.length > 0) {
-            setAppointments((prevApts) => {
-              return data.appointments.map((serverApt: Appointment) => {
-                const localApt = prevApts.find((a) => a.id === serverApt.id);
-                if (!localApt) return serverApt;
-
-                // Preservar evidencias fotográficas locales contra sobreescrituras desfasadas
-                const localPhotos = localApt.serviceRecord?.evidencePhotos || [];
-                const serverPhotos = serverApt.serviceRecord?.evidencePhotos || [];
-
-                const photoMap = new Map<string, any>();
-                serverPhotos.forEach((p) => photoMap.set(p.category, p));
-                localPhotos.forEach((p) => {
-                  const existing = photoMap.get(p.category);
-                  photoMap.set(p.category, {
-                    ...(existing || {}),
-                    ...p,
-                    beforePhotoUrl: p.beforePhotoUrl || existing?.beforePhotoUrl,
-                    afterPhotoUrl: p.afterPhotoUrl || existing?.afterPhotoUrl,
-                  });
-                });
-                const mergedPhotos = Array.from(photoMap.values());
-
-                return {
-                  ...serverApt,
-                  status:
-                    (localApt.status === 'en_servicio' || localApt.status === 'en_camino') &&
-                    serverApt.status !== 'completada'
-                      ? localApt.status
-                      : serverApt.status,
-                  serviceRecord: {
-                    ...(serverApt.serviceRecord || {}),
-                    ...(localApt.serviceRecord || {}),
-                    evidencePhotos: mergedPhotos,
-                  },
-                };
-              });
-            });
+          if (data.appointments && Array.isArray(data.appointments)) {
+            setAppointments(data.appointments);
           }
           if (data.notifications) setNotifications(data.notifications);
           if (data.scheduleSettings) setScheduleSettings(data.scheduleSettings);
-          if (data.securitySettings?.staffMembers && data.securitySettings.staffMembers.length > 0) {
-            setSecuritySettings(data.securitySettings);
-          }
+          if (data.securitySettings) setSecuritySettings(data.securitySettings);
         }
       } catch (e) {
         // quiet error

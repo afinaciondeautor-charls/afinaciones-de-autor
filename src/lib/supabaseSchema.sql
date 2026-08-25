@@ -19,8 +19,8 @@ create table if not exists public.appointments (
   status text not null default 'solicitud_pendiente',
   scheduled_date text not null,
   time_slot text not null,
-  technician_name text default 'Pedro Almonte (Master Tech)',
-  technician_phone text default '+52 55 9876 5432',
+  technician_name text default 'Luis González',
+  technician_phone text default '3334884592',
   payment_method text default 'on_site_card',
   payment_status text default 'pending',
   cancellation_policy_accepted boolean default true,
@@ -93,32 +93,42 @@ values (
   '[
     {
       "id": "staff-1",
-      "name": "Pedro Almonte",
-      "phone": "+52 55 9876 5432",
+      "name": "Luis Carlos Carranza",
+      "phone": "3334884592",
       "role": "admin",
       "status": "active",
+      "pin": "123456",
       "createdAt": "2026-08-24T10:00:00Z"
     },
     {
       "id": "staff-2",
-      "name": "Carlos Ruiz (Master Tech)",
-      "phone": "+52 55 8899 1122",
+      "name": "Luis González",
+      "phone": "3334884592",
       "role": "technician",
       "status": "active",
+      "pin": "123456",
+      "createdAt": "2026-08-24T10:00:00Z"
+    },
+    {
+      "id": "staff-3",
+      "name": "Carlos Carranza",
+      "phone": "3334884592",
+      "role": "technician",
+      "status": "active",
+      "pin": "123456",
       "createdAt": "2026-08-24T10:00:00Z"
     }
   ]'::jsonb
 )
 on conflict (id) do nothing;
 
--- 7. Configuración de Políticas de Acceso (Row Level Security)
+-- 7. Políticas de Seguridad RLS (Lectura y Escritura permitidas para la app)
 alter table public.appointments enable row level security;
 alter table public.notifications enable row level security;
 alter table public.schedule_settings enable row level security;
 alter table public.security_settings enable row level security;
 
--- Permitir lectura y escritura completa con clave anónima (anon key)
-create policy "Allow all access to appointments" on public.appointments for all using (true) with check (true);
-create policy "Allow all access to notifications" on public.notifications for all using (true) with check (true);
-create policy "Allow all access to schedule_settings" on public.schedule_settings for all using (true) with check (true);
-create policy "Allow all access to security_settings" on public.security_settings for all using (true) with check (true);
+create policy "Acceso total appointments" on public.appointments for all using (true) with check (true);
+create policy "Acceso total notifications" on public.notifications for all using (true) with check (true);
+create policy "Acceso total schedule_settings" on public.schedule_settings for all using (true) with check (true);
+create policy "Acceso total security_settings" on public.security_settings for all using (true) with check (true);
