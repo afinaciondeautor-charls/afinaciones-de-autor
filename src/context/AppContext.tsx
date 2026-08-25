@@ -132,26 +132,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     fetchInitial();
-
-    // Sincronización continua en tiempo real desde el Servidor
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch('/api/app-state');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.appointments && Array.isArray(data.appointments)) {
-            setAppointments(data.appointments);
-          }
-          if (data.notifications) setNotifications(data.notifications);
-          if (data.scheduleSettings) setScheduleSettings(data.scheduleSettings);
-          if (data.securitySettings) setSecuritySettings(data.securitySettings);
-        }
-      } catch (e) {
-        // quiet error
-      }
-    }, 4000);
-
-    return () => clearInterval(interval);
   }, []);
 
   const addNotification = (notif: Omit<NotificationLog, 'id' | 'timestamp'>) => {
