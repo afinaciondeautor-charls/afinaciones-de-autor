@@ -71,6 +71,7 @@ interface AppContextType {
   addNotification: (notification: Omit<NotificationLog, 'id' | 'timestamp'>) => void;
   rebookAppointment1Click: (appointmentId: string, date: string, timeSlot: string) => string;
   updateScheduleSettings: (settings: Partial<BusinessScheduleSettings>) => void;
+  saveScheduleSettingsToServer: (settings?: BusinessScheduleSettings) => Promise<boolean>;
   toggleWorkingDay: (dayOfWeek: number) => void;
   toggleSlotActive: (slotId: string) => void;
   addScheduleSlot: (slot: string, label: string) => void;
@@ -592,10 +593,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // FUNCIONES PARA ADMINISTRAR HORARIOS Y DÍAS DISPONIBLES
   const updateScheduleSettings = (settings: Partial<BusinessScheduleSettings>) => {
-    setScheduleSettings((prev) => ({
-      ...prev,
-      ...settings,
-    }));
+    setScheduleSettings((prev) => {
+      const updated = { ...prev, ...settings };
+      syncToServer(undefined, undefined, updated);
+      return updated;
+    });
+  };
+
+  const saveScheduleSettingsToServer = async (settings?: BusinessScheduleSettings): Promise<boolean> => {
+    try {
+      const toSave = settings || scheduleSettings;
+      await syncToServer(undefined, undefined, toSave);
+      return true;
+    } catch (e) {
+      console.error('Error saving schedule settings:', e);
+      return false;
+    }
   };
 
   const toggleWorkingDay = (dayOfWeek: number) => {
@@ -784,6 +797,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addNotification,
         rebookAppointment1Click,
         updateScheduleSettings,
+        saveScheduleSettingsToServer,
         toggleWorkingDay,
         toggleSlotActive,
         addScheduleSlot,

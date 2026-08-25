@@ -11,10 +11,12 @@ import {
   Ban,
   Plus,
   Trash2,
-  Sliders,
   Check,
-  AlertCircle,
+  Save,
+  Loader2,
+  Sparkles,
 } from 'lucide-react';
+import { getLocalDateString } from '@/lib/dateUtils';
 
 const MONTH_NAMES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -31,15 +33,23 @@ export default function AdminScheduleCalendar() {
     addScheduleSlot,
     removeScheduleSlot,
     toggleBlockedDate,
+    saveScheduleSettingsToServer,
     appointments,
   } = useApp();
 
-  // Calendar navigation state
-  const [currentYear, setCurrentYear] = useState(2026);
-  const [currentMonth, setCurrentMonth] = useState(7); // 0-indexed: 7 = Agosto
+  const todayStr = getLocalDateString();
+  const [todayYear, todayMonthNum] = todayStr.split('-').map(Number);
+
+  // Calendar navigation state (defaults to today's year and month)
+  const [currentYear, setCurrentYear] = useState(todayYear || 2026);
+  const [currentMonth, setCurrentMonth] = useState(todayMonthNum ? todayMonthNum - 1 : 7); // 0-indexed
 
   // Selected date in format YYYY-MM-DD
-  const [selectedDate, setSelectedDate] = useState('2026-08-25');
+  const [selectedDate, setSelectedDate] = useState(todayStr);
+
+  // Save feedback state
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
 
   // New slot form state
   const [newSlotTime, setNewSlotTime] = useState('');
@@ -92,10 +102,39 @@ export default function AdminScheduleCalendar() {
   const selectedDayOfWeek = selectedDateObj.getDay();
   const selectedDayConfig = scheduleSettings.workingDays.find((d) => d.dayOfWeek === selectedDayOfWeek);
   const isSelectedDateBlocked = scheduleSettings.blockedDates.includes(selectedDate);
+  const isSelectedDatePast = selectedDate < todayStr;
   const isDayEnabled = selectedDayConfig ? selectedDayConfig.enabled && !isSelectedDateBlocked : !isSelectedDateBlocked;
 
   // Appointments on selected date
   const appointmentsOnSelectedDate = appointments.filter((a) => a.scheduledDate === selectedDate);
+
+  // Click on a calendar day: Toggle blocked state immediately with 1-click
+  const handleDayClick = (dateString: string) => {
+    if (dateString < todayStr) {
+      // Past day: only select to view details, do not enable
+      setSelectedDate(dateString);
+      return;
+    }
+    setSelectedDate(dateString);
+    toggleBlockedDate(dateString);
+  };
+
+  // Explicit Save Button
+  const handleSaveChanges = async () => {
+    setIsSaving(true);
+    setSaveSuccessMessage(null);
+    try {
+      const ok = await saveScheduleSettingsToServer();
+      if (ok) {
+        setSaveSuccessMessage('¡Configuración de Calendario y Horarios guardada con éxito en el servidor!');
+        setTimeout(() => setSaveSuccessMessage(null), 4000);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleCreateSlot = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,6 +149,45 @@ export default function AdminScheduleCalendar() {
 
   return (
     <div className="space-y-6">
+      {/* Barra Superior con Notificación y Botón Guardar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white border border-slate-200 p-4 sm:p-5 rounded-3xl shadow-2xs">
+        <div>
+          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <CalendarIcon className="w-5 h-5 text-amber-500" />
+            <span>Gestión de Calendario y Turnos de Servicio</span>
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Toca cualquier día futuro para <strong>bloquearlo o desbloquearlo con 1 solo clic</strong>. Los clientes solo verán los días y horarios que dejes disponibles.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleSaveChanges}
+          disabled={isSaving}
+          className="w-full sm:w-auto px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-md transition cursor-pointer active:scale-95 shrink-0"
+        >
+          {isSaving ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+              <span>Guardando en Servidor...</span>
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4 text-amber-400" />
+              <span>Guardar Horarios y Calendario</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {saveSuccessMessage && (
+        <div className="p-4 bg-emerald-50 border border-emerald-300 rounded-2xl text-xs font-bold text-emerald-900 flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{saveSuccessMessage}</span>
+        </div>
+      )}
+
       {/* Contenedor Principal en 2 Columnas (Calendario visual a la izquierda + Panel de Horarios a la derecha) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
@@ -120,15 +198,15 @@ export default function AdminScheduleCalendar() {
           {/* Header del Calendario con Navegación de Mes */}
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-[#001E50] text-[#FFC72C] flex items-center justify-center font-black shadow-xs">
+              <div className="w-10 h-10 rounded-2xl bg-[#08101E] text-amber-400 flex items-center justify-center font-black shadow-xs">
                 <CalendarIcon className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base sm:text-lg font-black text-[#001E50]">
+                <h3 className="text-base sm:text-lg font-black text-slate-900">
                   {MONTH_NAMES[currentMonth]} {currentYear}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Haz clic en cualquier día para activar/bloquear y configurar sus horarios
+                  Haz clic directo en un día para bloquear / desbloquear (1 clic)
                 </p>
               </div>
             </div>
@@ -154,9 +232,9 @@ export default function AdminScheduleCalendar() {
           </div>
 
           {/* Días de la Semana */}
-          <div className="grid grid-cols-7 gap-1 text-center font-black text-xs text-slate-600 py-1">
+          <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs text-slate-600 py-1">
             {DAY_NAMES.map((name, i) => (
-              <div key={name} className={i === 0 || i === 6 ? 'text-[#00509E] font-black' : ''}>
+              <div key={name} className={i === 0 || i === 6 ? 'text-amber-800 font-bold' : ''}>
                 {name} {i === 0 || i === 6 ? '★' : ''}
               </div>
             ))}
@@ -174,10 +252,12 @@ export default function AdminScheduleCalendar() {
                 );
               }
 
+              const isPast = cell.dateString < todayStr;
+              const isToday = cell.dateString === todayStr;
               const isSelected = cell.dateString === selectedDate;
               const isBlocked = scheduleSettings.blockedDates.includes(cell.dateString);
               const dayConfig = scheduleSettings.workingDays.find((d) => d.dayOfWeek === cell.dayOfWeek);
-              const isDayActive = dayConfig ? dayConfig.enabled && !isBlocked : !isBlocked;
+              const isDayActive = !isPast && (dayConfig ? dayConfig.enabled && !isBlocked : !isBlocked);
 
               // Count booked appointments on this day
               const bookedOnDay = appointments.filter((a) => a.scheduledDate === cell.dateString);
@@ -186,31 +266,53 @@ export default function AdminScheduleCalendar() {
                 <button
                   key={cell.dateString}
                   type="button"
-                  onClick={() => setSelectedDate(cell.dateString)}
-                  className={`min-h-[60px] sm:min-h-[70px] p-2 rounded-xl border text-left flex flex-col justify-between transition cursor-pointer relative ${
-                    isSelected
-                      ? 'bg-slate-900 border-slate-900 text-white shadow-xs z-10'
+                  onClick={() => handleDayClick(cell.dateString)}
+                  title={
+                    isPast
+                      ? `Día pasado (${cell.dateString}) - No disponible`
                       : isBlocked
-                      ? 'bg-slate-50 border-slate-200 text-slate-400'
+                      ? `Día bloqueado - Clic para desbloquear`
+                      : `Día disponible - Clic para bloquear`
+                  }
+                  className={`min-h-[62px] sm:min-h-[74px] p-2 rounded-xl border text-left flex flex-col justify-between transition cursor-pointer relative ${
+                    isPast
+                      ? 'bg-slate-100/60 border-slate-200 text-slate-400 opacity-60 cursor-not-allowed'
+                      : isSelected && !isBlocked
+                      ? 'bg-slate-900 border-slate-900 text-white shadow-xs z-10'
+                      : isSelected && isBlocked
+                      ? 'bg-rose-950 border-rose-900 text-white shadow-xs z-10'
+                      : isBlocked
+                      ? 'bg-rose-50/80 border-rose-200 text-rose-800 hover:bg-rose-100/80'
                       : !isDayActive
                       ? 'bg-slate-50 border-slate-200 text-slate-400 opacity-60'
                       : 'bg-white border-slate-200 hover:border-slate-300 text-slate-800'
                   }`}
                 >
                   <div className="flex items-center justify-between w-full">
-                    <span
-                      className={`text-xs font-mono font-bold ${
-                        isSelected
-                          ? 'text-white'
-                          : cell.dayOfWeek === 0 || cell.dayOfWeek === 6
-                          ? 'text-slate-900 font-black'
-                          : 'text-slate-700'
-                      }`}
-                    >
-                      {cell.dayNumber}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span
+                        className={`text-xs font-mono font-bold ${
+                          isPast
+                            ? 'text-slate-400'
+                            : isSelected
+                            ? 'text-white'
+                            : cell.dayOfWeek === 0 || cell.dayOfWeek === 6
+                            ? 'text-slate-900 font-black'
+                            : 'text-slate-700'
+                        }`}
+                      >
+                        {cell.dayNumber}
+                      </span>
+                      {isToday && (
+                        <span className="text-[8px] font-bold uppercase px-1 py-0.2 bg-amber-400 text-slate-950 rounded font-mono">
+                          Hoy
+                        </span>
+                      )}
+                    </div>
 
-                    {isBlocked ? (
+                    {isPast ? (
+                      <span className="w-2 h-2 rounded-full bg-slate-300 shrink-0" title="Fecha Pasada" />
+                    ) : isBlocked ? (
                       <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" title="Fecha Bloqueada" />
                     ) : isDayActive ? (
                       <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-amber-400' : 'bg-emerald-600'} shrink-0`} title="Día Abierto" />
@@ -226,6 +328,10 @@ export default function AdminScheduleCalendar() {
                         isSelected ? 'bg-slate-800 text-amber-400' : 'bg-slate-100 text-slate-800'
                       }`}>
                         {bookedOnDay.length} cita{bookedOnDay.length > 1 ? 's' : ''}
+                      </span>
+                    ) : isPast ? (
+                      <span className="block text-[9px] font-medium text-slate-400 truncate">
+                        Pasado
                       </span>
                     ) : isBlocked ? (
                       <span className="block text-[9px] font-bold text-rose-600 truncate">
@@ -260,7 +366,7 @@ export default function AdminScheduleCalendar() {
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-slate-300" />
-              <span>No Laborable</span>
+              <span>Pasado / No Laborable</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="px-1.5 py-0.2 bg-slate-100 text-slate-700 rounded font-mono text-[9px] font-bold">1 cita</span>
@@ -279,58 +385,65 @@ export default function AdminScheduleCalendar() {
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 Configuración del Día Seleccionado:
               </span>
-              <span className="text-xs font-mono font-bold text-[#00509E] bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
+              <span className="text-xs font-mono font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
                 {selectedDate}
               </span>
             </div>
 
-            <h4 className="text-xl font-black text-[#001E50]">
+            <h4 className="text-xl font-black text-slate-900">
               {selectedDayConfig?.name || 'Día'} {selectedDateParts[2]} de {MONTH_NAMES[selectedDateParts[1] - 1]}
             </h4>
 
             {/* Toggle de Bloqueo o Disponibilidad para este día específico */}
             <div className="pt-1 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => toggleBlockedDate(selectedDate)}
-                className={`w-full py-2.5 px-4 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition cursor-pointer ${
-                  isSelectedDateBlocked
-                    ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300'
-                    : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300'
-                }`}
-              >
-                {isSelectedDateBlocked ? (
-                  <>
-                    <Ban className="w-4 h-4 text-rose-600" />
-                    <span>Día Bloqueado (Clic para Habilitar)</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>Día Abierto para Citas (Clic para Bloquear)</span>
-                  </>
-                )}
-              </button>
+              {isSelectedDatePast ? (
+                <div className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200 flex items-center justify-center gap-2">
+                  <Ban className="w-4 h-4 text-slate-400" />
+                  <span>Día Pasado (Bloqueado por Fecha)</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => toggleBlockedDate(selectedDate)}
+                  className={`w-full py-2.5 px-4 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition cursor-pointer ${
+                    isSelectedDateBlocked
+                      ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300'
+                      : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300'
+                  }`}
+                >
+                  {isSelectedDateBlocked ? (
+                    <>
+                      <Ban className="w-4 h-4 text-rose-600" />
+                      <span>Día Bloqueado (Clic para Habilitar)</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>Día Abierto para Citas (Clic para Bloquear)</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
 
           {/* Citas Programadas en este Día */}
           {appointmentsOnSelectedDate.length > 0 && (
-            <div className="bg-blue-50/60 border border-blue-200 rounded-2xl p-3.5 space-y-2 text-xs">
-              <span className="font-bold text-[#001E50] block">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2 text-xs">
+              <span className="font-bold text-slate-900 block">
                 🚗 Citas Programadas en esta fecha ({appointmentsOnSelectedDate.length}):
               </span>
               <div className="space-y-1.5">
                 {appointmentsOnSelectedDate.map((apt) => (
                   <div
                     key={apt.id}
-                    className="p-2.5 bg-white rounded-xl border border-blue-100 flex items-center justify-between text-xs"
+                    className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between text-xs"
                   >
                     <div>
                       <strong className="text-slate-900">{apt.vehicle.brand} {apt.vehicle.model}</strong>
                       <span className="text-slate-500 block text-[11px]">{apt.client.name} • {apt.timeSlot}</span>
                     </div>
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-blue-50 text-[#00509E] rounded-md">
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-slate-100 text-slate-800 rounded-md">
                       {apt.folio}
                     </span>
                   </div>
@@ -342,8 +455,8 @@ export default function AdminScheduleCalendar() {
           {/* Horarios Activos y Disponibles */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black uppercase tracking-wider text-[#001E50] flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-[#00509E]" />
+              <span className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-slate-700" />
                 <span>Horarios de Atención Disponibles:</span>
               </span>
               <span className="text-xs font-bold text-slate-500">
@@ -355,15 +468,15 @@ export default function AdminScheduleCalendar() {
               {scheduleSettings.slots.map((slot) => (
                 <div
                   key={slot.id}
-                  className={`p-3 rounded-2xl border-2 flex items-center justify-between gap-2 transition ${
+                  className={`p-3 rounded-2xl border flex items-center justify-between gap-2 transition ${
                     slot.active
-                      ? 'bg-white border-slate-300 shadow-2xs'
+                      ? 'bg-white border-slate-200 shadow-2xs'
                       : 'bg-slate-50 border-slate-200 opacity-60'
                   }`}
                 >
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-[#00509E]" />
+                      <Clock className="w-3.5 h-3.5 text-slate-700" />
                       <span className="font-mono font-bold text-xs text-slate-900">{slot.slot}</span>
                     </div>
                     <span className="text-[11px] text-slate-500">{slot.label}</span>
@@ -401,7 +514,7 @@ export default function AdminScheduleCalendar() {
             onSubmit={handleCreateSlot}
             className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3"
           >
-            <span className="text-xs font-bold text-[#001E50] block">
+            <span className="text-xs font-bold text-slate-900 block">
               + Agregar Nuevo Horario de Servicio:
             </span>
 
@@ -416,7 +529,7 @@ export default function AdminScheduleCalendar() {
                   placeholder="07:30 - 09:30"
                   value={newSlotTime}
                   onChange={(e) => setNewSlotTime(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 font-mono focus:outline-hidden focus:border-[#00509E]"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 font-mono focus:outline-hidden focus:border-slate-500"
                 />
               </div>
 
@@ -429,19 +542,41 @@ export default function AdminScheduleCalendar() {
                   placeholder="Turno Matutino Extra"
                   value={newSlotLabel}
                   onChange={(e) => setNewSlotLabel(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-[#00509E]"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-slate-500"
                 />
               </div>
             </div>
 
             <button
               type="submit"
-              className="w-full py-2.5 bg-[#001E50] hover:bg-[#00509E] text-[#FFC72C] font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
             >
-              <Plus className="w-3.5 h-3.5 text-[#FFC72C]" />
+              <Plus className="w-3.5 h-3.5 text-amber-400" />
               <span>Guardar Horario en la Agenda</span>
             </button>
           </form>
+
+          {/* Botón Guardar Cambios en el Panel Lateral */}
+          <div className="pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={handleSaveChanges}
+              disabled={isSaving}
+              className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-2xs transition cursor-pointer active:scale-95"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>Guardando en Servidor...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 text-amber-300" />
+                  <span>Guardar Horarios y Calendario</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
