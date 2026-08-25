@@ -3,7 +3,7 @@
  * Redimensiona a máx 1200px con compresión JPEG 0.7 para que pesen ~100-200KB
  * manteniendo total nitidez para evidencias técnicas.
  */
-export async function compressImage(file: File, maxWidth: number = 1200, maxHeight: number = 1200, quality: number = 0.72): Promise<string> {
+export async function compressImage(file: File, maxWidth: number = 900, maxHeight: number = 900, quality: number = 0.65): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);

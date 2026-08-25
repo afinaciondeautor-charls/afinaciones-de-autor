@@ -148,7 +148,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const res = await fetch('/api/app-state');
         if (res.ok) {
           const data = await res.json();
-          if (data.appointments) setAppointments(data.appointments);
+          if (data.appointments && Array.isArray(data.appointments)) {
+            setAppointments((prevApts) => {
+              return data.appointments.map((serverApt: Appointment) => {
+                const localApt = prevApts.find((a) => a.id === serverApt.id);
+                if (!localApt) return serverApt;
+
+                // Preservar evidencias fotográficas locales contra sobreescrituras desfasadas
+                const localPhotos = localApt.serviceRecord?.evidencePhotos || [];
+                const serverPhotos = serverApt.serviceRecord?.evidencePhotos || [];
+
+                const photoMap = new Map<string, any>();
+                serverPhotos.forEach((p) => photoMap.set(p.category, p));
+                localPhotos.forEach((p) => {
+                  const existing = photoMap.get(p.category);
+                  photoMap.set(p.category, {
+                    ...(existing || {}),
+                    ...p,
+                    beforePhotoUrl: p.beforePhotoUrl || existing?.beforePhotoUrl,
+                    afterPhotoUrl: p.afterPhotoUrl || existing?.afterPhotoUrl,
+                  });
+                });
+                const mergedPhotos = Array.from(photoMap.values());
+
+                return {
+                  ...serverApt,
+                  status:
+                    (localApt.status === 'en_servicio' || localApt.status === 'en_camino') &&
+                    serverApt.status !== 'completada'
+                      ? localApt.status
+                      : serverApt.status,
+                  serviceRecord: {
+                    ...(serverApt.serviceRecord || {}),
+                    ...(localApt.serviceRecord || {}),
+                    evidencePhotos: mergedPhotos,
+                  },
+                };
+              });
+            });
+          }
           if (data.notifications) setNotifications(data.notifications);
           if (data.scheduleSettings) setScheduleSettings(data.scheduleSettings);
           if (data.securitySettings) setSecuritySettings(data.securitySettings);

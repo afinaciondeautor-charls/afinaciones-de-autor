@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { EvidencePhoto, InstalledPart, DualQuote } from '@/types';
-import { Camera, CheckCircle2, Eye, Trash2, Loader2, Sparkles } from 'lucide-react';
+import { Camera, CheckCircle2, Eye, Trash2, Loader2 } from 'lucide-react';
 import { compressImage } from '@/lib/imageUtils';
 
 interface Props {
@@ -29,6 +29,27 @@ export default function EvidenceManager({
 }: Props) {
   const [activePreview, setActivePreview] = useState<string | null>(null);
   const [processingSlots, setProcessingSlots] = useState<Record<string, boolean>>({});
+  const [internalPhotos, setInternalPhotos] = useState<EvidencePhoto[]>(photos);
+
+  // Mantener sincronizado el estado interno con las props entrantes sin perder fotos locales
+  useEffect(() => {
+    if (photos && Array.isArray(photos)) {
+      setInternalPhotos((prev) => {
+        const map = new Map<string, EvidencePhoto>();
+        prev.forEach((p) => map.set(p.category, p));
+        photos.forEach((p) => {
+          const existing = map.get(p.category);
+          map.set(p.category, {
+            ...(existing || {}),
+            ...p,
+            beforePhotoUrl: p.beforePhotoUrl || existing?.beforePhotoUrl,
+            afterPhotoUrl: p.afterPhotoUrl || existing?.afterPhotoUrl,
+          });
+        });
+        return Array.from(map.values());
+      });
+    }
+  }, [photos]);
 
   // Construir categorías ÚNICA y EXCLUSIVAMENTE a partir de lo que fue cotizado
   const categoriesToRender = React.useMemo<EvidenceCategoryConfig[]>(() => {
@@ -116,16 +137,19 @@ export default function EvidenceManager({
     url?: string,
     notes?: string
   ) => {
-    const existingIndex = photos.findIndex((p) => p.category === category);
-    let updatedList = [...photos];
-
     const catConfig = categoriesToRender.find((c) => c.category === category);
     const itemLabel = catConfig?.label || category;
+
+    const existingIndex = internalPhotos.findIndex(
+      (p) => p.category === category || (p.label && p.label.toLowerCase() === itemLabel.toLowerCase())
+    );
+    let updatedList = [...internalPhotos];
 
     if (existingIndex >= 0) {
       const current = updatedList[existingIndex];
       updatedList[existingIndex] = {
         ...current,
+        category,
         label: itemLabel,
         ...(type === 'before' ? { beforePhotoUrl: url ?? current.beforePhotoUrl } : {}),
         ...(type === 'after' ? { afterPhotoUrl: url ?? current.afterPhotoUrl } : {}),
@@ -142,6 +166,8 @@ export default function EvidenceManager({
       });
     }
 
+    // Actualizar estado local de forma inmediata para que jamás desaparezca
+    setInternalPhotos(updatedList);
     onChange(updatedList);
   };
 
@@ -157,8 +183,8 @@ export default function EvidenceManager({
     setProcessingSlots((prev) => ({ ...prev, [slotKey]: true }));
 
     try {
-      // Comprime la imagen del celular en JPEG optimizado (resolución nítida a ~150KB)
-      const compressedDataUrl = await compressImage(file, 1200, 1200, 0.72);
+      // Comprime la imagen del celular en JPEG optimizado (resolución nítida de ~50KB-70KB)
+      const compressedDataUrl = await compressImage(file, 900, 900, 0.65);
       updatePhoto(category, type, compressedDataUrl);
     } catch (err) {
       console.error('Error al comprimir foto:', err);
@@ -176,10 +202,15 @@ export default function EvidenceManager({
   };
 
   const handleRemovePhoto = (category: string, type: 'before' | 'after') => {
-    const existingIndex = photos.findIndex((p) => p.category === category);
+    const catConfig = categoriesToRender.find((c) => c.category === category);
+    const itemLabel = catConfig?.label || category;
+
+    const existingIndex = internalPhotos.findIndex(
+      (p) => p.category === category || (p.label && p.label.toLowerCase() === itemLabel.toLowerCase())
+    );
     if (existingIndex < 0) return;
 
-    let updatedList = [...photos];
+    let updatedList = [...internalPhotos];
     const copy = { ...updatedList[existingIndex] };
     if (type === 'before') {
       delete copy.beforePhotoUrl;
@@ -187,6 +218,8 @@ export default function EvidenceManager({
       delete copy.afterPhotoUrl;
     }
     updatedList[existingIndex] = copy;
+
+    setInternalPhotos(updatedList);
     onChange(updatedList);
   };
 
@@ -206,7 +239,9 @@ export default function EvidenceManager({
       {/* Grid de Refacciones Cotizadas */}
       <div className="space-y-4">
         {categoriesToRender.map((cat) => {
-          const current = photos.find((p) => p.category === cat.category);
+          const current = internalPhotos.find(
+            (p) => p.category === cat.category || (p.label && p.label.toLowerCase() === cat.label.toLowerCase())
+          );
           const hasBefore = !!current?.beforePhotoUrl;
           const hasAfter = !!current?.afterPhotoUrl;
           const isComplete = hasBefore && hasAfter;
