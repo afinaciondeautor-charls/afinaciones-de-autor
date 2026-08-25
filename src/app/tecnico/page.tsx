@@ -42,7 +42,7 @@ import {
 } from 'lucide-react';
 import { Appointment, EvidencePhoto } from '@/types';
 import { getWhatsAppEnRouteLink, getWhatsAppCompletedLink } from '@/lib/whatsapp';
-import { getLocalDateString } from '@/lib/dateUtils';
+import { getLocalDateString, formatDisplayDate } from '@/lib/dateUtils';
 import Link from 'next/link';
 
 type TechnicianTab = 'ruta' | 'agendados' | 'realizados' | 'manual';
@@ -701,11 +701,11 @@ export default function TechnicianPage() {
 
                             <div>
                               <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-mono font-bold text-xs bg-slate-100 text-slate-900 px-2.5 py-1 rounded-md border border-slate-200 flex items-center gap-1.5">
-                                  <Calendar className="w-3.5 h-3.5 text-[#00509E]" />
-                                  <span>{apt.scheduledDate}</span>
-                                  <span className="text-slate-400">•</span>
-                                  <span>{apt.timeSlot}</span>
+                                <span className="font-mono font-bold text-xs bg-[#08101E] text-amber-300 px-3 py-1 rounded-xl border border-amber-400/40 shadow-xs flex items-center gap-1.5">
+                                  <Calendar className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                  <span className="tracking-wide text-white">{formatDisplayDate(apt.scheduledDate)}</span>
+                                  <span className="text-amber-400/50">|</span>
+                                  <span className="text-amber-300 font-semibold">{apt.timeSlot}</span>
                                 </span>
 
                                 <span

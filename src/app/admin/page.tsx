@@ -38,6 +38,7 @@ import AdminApproveQuoteModal from '@/components/AdminApproveQuoteModal';
 import AdminDirectServiceModal from '@/components/AdminDirectServiceModal';
 import AdminSecurityStaff from '@/components/AdminSecurityStaff';
 import { getWhatsAppQuoteLink } from '@/lib/whatsapp';
+import { formatDisplayDate } from '@/lib/dateUtils';
 import { Appointment } from '@/types';
 import Link from 'next/link';
 
@@ -576,15 +577,19 @@ export default function AdminDashboardPage() {
                               <button
                                 type="button"
                                 onClick={() => setSelectedAptForApproval(apt)}
-                                className="text-xs text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 px-3 py-1.5 rounded-xl font-mono flex items-center gap-1.5 transition cursor-pointer group shadow-2xs"
+                                className="text-xs bg-[#08101E] hover:bg-slate-800 text-amber-300 border border-amber-400/40 px-3 py-1.5 rounded-xl font-mono flex items-center gap-1.5 transition cursor-pointer group shadow-xs"
                                 title="Clic para modificar fecha, horario o confirmar cita"
                               >
-                                <Calendar className="w-3.5 h-3.5 text-[#00509E]" />
-                                <span>Fecha de Visita:</span>
-                                <strong className="text-slate-900 group-hover:text-[#00509E]">
-                                  {apt.scheduledDate} • {apt.timeSlot}
+                                <Calendar className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                <span className="text-white/80">Fecha:</span>
+                                <strong className="text-white">
+                                  {formatDisplayDate(apt.scheduledDate)}
                                 </strong>
-                                <span className="text-[10px] text-slate-400 group-hover:text-amber-600 ml-0.5">✏️ Editar</span>
+                                <span className="text-amber-400/50">|</span>
+                                <strong className="text-amber-300">
+                                  {apt.timeSlot}
+                                </strong>
+                                <span className="text-[10px] text-amber-400/80 bg-amber-950/60 px-1.5 py-0.5 rounded-md border border-amber-500/30 ml-1">✏️ Editar</span>
                               </button>
                             </div>
 
@@ -749,8 +754,11 @@ export default function AdminDashboardPage() {
                     <div key={apt.id} className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-2xs space-y-3">
                       <div className="flex items-start justify-between">
                         <div>
-                          <span className="text-xs font-mono font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
-                            {apt.scheduledDate} • {apt.timeSlot}
+                          <span className="text-xs font-mono font-bold text-amber-300 bg-[#08101E] px-3 py-1 rounded-xl border border-amber-400/40 inline-flex items-center gap-1.5 shadow-xs">
+                            <Calendar className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            <span className="text-white">{formatDisplayDate(apt.scheduledDate)}</span>
+                            <span className="text-amber-400/50">|</span>
+                            <span>{apt.timeSlot}</span>
                           </span>
                           <h3 className="text-base font-bold text-slate-900 mt-1.5">
                             {apt.vehicle.brand} {apt.vehicle.model} ({apt.vehicle.year})

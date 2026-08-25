@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { QuoteOptionType, PaymentMethod } from '@/types';
+import { formatDisplayDate } from '@/lib/dateUtils';
 
 export default function TrackingPage() {
   const params = useParams();
@@ -398,7 +399,7 @@ export default function TrackingPage() {
             <div className="space-y-3 text-xs sm:text-sm">
               <div className="flex justify-between border-b border-slate-100 pb-2">
                 <span className="text-slate-500">Fecha Programada:</span>
-                <strong className="text-slate-900 font-mono">{appointment.scheduledDate}</strong>
+                <strong className="text-slate-900 font-mono font-bold">{formatDisplayDate(appointment.scheduledDate)}</strong>
               </div>
               <div className="flex justify-between border-b border-slate-100 pb-2">
                 <span className="text-slate-500">Horario de Atención:</span>

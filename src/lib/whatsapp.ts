@@ -1,4 +1,5 @@
 import { Appointment } from '@/types';
+import { formatDisplayDate } from '@/lib/dateUtils';
 
 /**
  * Normaliza y formatea el teléfono para enlaces directos de WhatsApp en México / Internacional
@@ -92,7 +93,7 @@ Tu cita de servicio con *Afinaciones de Autor* ha quedado *CONFIRMADA*.
 
 📋 *Folio:* ${appointment.folio}
 🚘 *Vehículo:* ${appointment.vehicle.brand} ${appointment.vehicle.model} (${appointment.vehicle.year}) • Placas: ${appointment.vehicle.plates || 'S/P'}
-📅 *Fecha:* ${appointment.scheduledDate}
+📅 *Fecha:* ${formatDisplayDate(appointment.scheduledDate)}
 ⏰ *Horario de Visita:* ${appointment.timeSlot}
 🔧 *Técnico Asignado:* ${appointment.technicianName} ${appointment.technicianPhone ? '(' + appointment.technicianPhone + ')' : ''}
 📍 *Dirección:* ${appointment.client.address}
