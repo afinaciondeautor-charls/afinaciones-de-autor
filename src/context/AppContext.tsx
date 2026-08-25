@@ -117,24 +117,57 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Initial load from server API
   useEffect(() => {
     const fetchInitial = async () => {
+      let localSaved: any = null;
+      try {
+        const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (saved) localSaved = JSON.parse(saved);
+      } catch (e) {
+        // ignore
+      }
+
       try {
         const res = await fetch('/api/app-state');
         if (res.ok) {
           const data = await res.json();
-          if (data.appointments) setAppointments(data.appointments);
+
+          // Citas: Si el servidor o local tiene datos, preservarlos; si no, usar INITIAL_APPOINTMENTS
+          if (data.appointments && data.appointments.length > 0) {
+            setAppointments(data.appointments);
+          } else if (localSaved?.appointments && localSaved.appointments.length > 0) {
+            setAppointments(localSaved.appointments);
+            syncToServer(localSaved.appointments, localSaved.notifications, localSaved.scheduleSettings, localSaved.securitySettings);
+          } else {
+            setAppointments(INITIAL_APPOINTMENTS);
+            syncToServer(INITIAL_APPOINTMENTS, data.notifications, data.scheduleSettings, data.securitySettings);
+          }
+
+          // Usuarios y Personal: Nunca permitir que se quede vacío
+          if (data.securitySettings?.staffMembers && data.securitySettings.staffMembers.length > 0) {
+            setSecuritySettings(data.securitySettings);
+          } else if (localSaved?.securitySettings?.staffMembers && localSaved.securitySettings.staffMembers.length > 0) {
+            setSecuritySettings(localSaved.securitySettings);
+          } else {
+            setSecuritySettings(INITIAL_SECURITY_SETTINGS);
+          }
+
           if (data.notifications) setNotifications(data.notifications);
           if (data.scheduleSettings) setScheduleSettings(data.scheduleSettings);
-          if (data.securitySettings) setSecuritySettings(data.securitySettings);
         }
       } catch (e) {
         console.error('Failed to fetch server state, falling back to local', e);
-        const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.appointments) setAppointments(parsed.appointments);
-          if (parsed.notifications) setNotifications(parsed.notifications);
-          if (parsed.scheduleSettings) setScheduleSettings(parsed.scheduleSettings);
-          if (parsed.securitySettings) setSecuritySettings(parsed.securitySettings);
+        if (localSaved) {
+          if (localSaved.appointments && localSaved.appointments.length > 0) {
+            setAppointments(localSaved.appointments);
+          } else {
+            setAppointments(INITIAL_APPOINTMENTS);
+          }
+          if (localSaved.notifications) setNotifications(localSaved.notifications);
+          if (localSaved.scheduleSettings) setScheduleSettings(localSaved.scheduleSettings);
+          if (localSaved.securitySettings?.staffMembers && localSaved.securitySettings.staffMembers.length > 0) {
+            setSecuritySettings(localSaved.securitySettings);
+          } else {
+            setSecuritySettings(INITIAL_SECURITY_SETTINGS);
+          }
         }
       }
       setIsLoaded(true);
@@ -148,7 +181,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const res = await fetch('/api/app-state');
         if (res.ok) {
           const data = await res.json();
-          if (data.appointments && Array.isArray(data.appointments)) {
+          if (data.appointments && Array.isArray(data.appointments) && data.appointments.length > 0) {
             setAppointments((prevApts) => {
               return data.appointments.map((serverApt: Appointment) => {
                 const localApt = prevApts.find((a) => a.id === serverApt.id);
@@ -189,7 +222,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
           if (data.notifications) setNotifications(data.notifications);
           if (data.scheduleSettings) setScheduleSettings(data.scheduleSettings);
-          if (data.securitySettings) setSecuritySettings(data.securitySettings);
+          if (data.securitySettings?.staffMembers && data.securitySettings.staffMembers.length > 0) {
+            setSecuritySettings(data.securitySettings);
+          }
         }
       } catch (e) {
         // quiet error

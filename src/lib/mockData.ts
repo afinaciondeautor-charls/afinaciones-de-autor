@@ -1,11 +1,43 @@
 import { Appointment, NotificationLog, BusinessScheduleSettings, SecuritySettings } from '@/types';
 
 /**
- * Base de datos limpia inicial para sincronización con Supabase / Backend.
+ * Base de datos inicial y persistente para Afinaciones de Autor.
+ * Garantiza que usuarios del equipo y citas base permanezcan siempre disponibles.
  */
-export const INITIAL_APPOINTMENTS: Appointment[] = [];
 
-export const INITIAL_NOTIFICATIONS: NotificationLog[] = [];
+export const INITIAL_SECURITY_SETTINGS: SecuritySettings = {
+  adminPin: '123456',
+  technicianPin: '123456',
+  staffMembers: [
+    {
+      id: 'staff-1',
+      name: 'Luis Carlos Carranza',
+      phone: '3334884592',
+      role: 'admin',
+      status: 'active',
+      pin: '123456',
+      createdAt: '2026-08-24T10:00:00.000Z',
+    },
+    {
+      id: 'staff-2',
+      name: 'Luis González',
+      phone: '3334884592',
+      role: 'technician',
+      status: 'active',
+      pin: '123456',
+      createdAt: '2026-08-24T10:00:00.000Z',
+    },
+    {
+      id: 'staff-3',
+      name: 'Carlos Carranza',
+      phone: '3334884592',
+      role: 'technician',
+      status: 'active',
+      pin: '123456',
+      createdAt: '2026-08-24T10:00:00.000Z',
+    },
+  ],
+};
 
 export const INITIAL_SCHEDULE_SETTINGS: BusinessScheduleSettings = {
   workingDays: [
@@ -26,8 +58,178 @@ export const INITIAL_SCHEDULE_SETTINGS: BusinessScheduleSettings = {
   blockedDates: [],
 };
 
-export const INITIAL_SECURITY_SETTINGS: SecuritySettings = {
-  adminPin: '123456',
-  technicianPin: '123456',
-  staffMembers: [],
-};
+export const INITIAL_APPOINTMENTS: Appointment[] = [
+  {
+    id: 'apt-1787603395427',
+    folio: 'ADA-2026-115',
+    client: {
+      name: 'Emilio González García',
+      phone: '3334884592',
+      email: 'emilio.gonzalez@gmail.com',
+      address: 'Santa Monica 128 Nueva Santa Maria, Guadalajara',
+      referenceNotes: 'Portón gris frente al parque',
+    },
+    vehicle: {
+      brand: 'KIA',
+      model: 'Soul',
+      year: 2023,
+      plates: 'DSS-421-5',
+      vin: 'KNDJP3A56N7129845',
+      engine: '2.0L MPI 4 Cilindros',
+      currentKm: 42350,
+    },
+    packageType: 'mayor',
+    serviceDescription: 'Afinación Mayor de Alto Rendimiento a Domicilio',
+    selectedOption: 'premium',
+    quote: {
+      agency: {
+        title: 'Opción Agencia (KIA OEM)',
+        description: 'Refacciones 100% de concesionaria autorizada KIA.',
+        partsBrand: 'Genuino KIA OEM',
+        warrantyMonths: 6,
+        laborCost: 650,
+        partsSubtotal: 2650,
+        price: 3300,
+        highlights: [
+          'Refacciones 100% de concesionaria oficial',
+          'Póliza de garantía legal de 6 meses',
+          'Inspección y escaneo digital en tu domicilio',
+        ],
+      },
+      premium: {
+        title: 'Opción De Autor (Alto Rendimiento)',
+        description: 'Refacciones de especificación superior (Motul 8100 100% Sintético, NGK Laser Iridium, Mann Filter Pro).',
+        partsBrand: 'Motul 8100 + NGK Laser Iridium + Mann Filter Pro',
+        warrantyMonths: 12,
+        laborCost: 650,
+        partsSubtotal: 3100,
+        price: 3750,
+        highlights: [
+          'Marcas premium de máximo desempeño y durabilidad',
+          'Garantía extendida por escrito de 12 meses / 15,000 km',
+          'Descarbonización ultrasónica y calibración con escáner OBD-II',
+        ],
+      },
+      itemsChecklist: [
+        { name: '4x Bujías NGK Laser Iridium', spec: 'Calibración GAP 0.8mm', includedInAgency: true, includedInPremium: true },
+        { name: 'Aceite Motul 8100 100% Sintético 5W-30 (5L)', spec: 'API SP / ILSAC GF-6A', includedInAgency: true, includedInPremium: true },
+        { name: 'Filtro de Aceite Mann Filter W712', spec: 'Válvula antidrenaje blindada', includedInAgency: true, includedInPremium: true },
+        { name: 'Filtro de Aire Mann Filter C30005', spec: 'Microfiltración de alto flujo', includedInAgency: true, includedInPremium: true },
+        { name: 'Filtro de Cabina Mann Filter CUK', spec: 'Carbón activado anti-alérgenos', includedInAgency: true, includedInPremium: true },
+        { name: 'Descarbonizado de Inyectores & Cuerpo TPS', spec: 'Limpieza con solvente dieléctrico y recalibración', includedInAgency: true, includedInPremium: true },
+      ],
+      remisionItems: [
+        {
+          id: 'rem-1',
+          quantity: 5,
+          unit: 'lts',
+          description: 'Aceite de Motor 100% Sintético 5W-30',
+          agencyBrand: 'KIA Original 5W-30 Full Synthetic',
+          agencyUnitPrice: 240,
+          agencyTotal: 1200,
+          premiumBrand: 'Motul 8100 X-cess 5W-30 Sintético',
+          premiumUnitPrice: 280,
+          premiumTotal: 1400,
+        },
+        {
+          id: 'rem-2',
+          quantity: 4,
+          unit: 'pzas',
+          description: 'Juego de 4 Bujías de Iridio / Platino',
+          agencyBrand: 'Bujías Genuinas KIA Mobis',
+          agencyUnitPrice: 260,
+          agencyTotal: 1040,
+          premiumBrand: 'NGK Laser Iridium Long-Life (0.8mm)',
+          premiumUnitPrice: 320,
+          premiumTotal: 1280,
+        },
+        {
+          id: 'rem-3',
+          quantity: 1,
+          unit: 'pza',
+          description: 'Filtro de Aceite de Motor Blindado',
+          agencyBrand: 'OEM KIA 26300-35505',
+          agencyUnitPrice: 220,
+          agencyTotal: 220,
+          premiumBrand: 'Mann Filter Pro W712/83',
+          premiumUnitPrice: 260,
+          premiumTotal: 260,
+        },
+        {
+          id: 'rem-4',
+          quantity: 1,
+          unit: 'pza',
+          description: 'Filtro de Aire de Motor',
+          agencyBrand: 'OEM KIA 28113-F2000',
+          agencyUnitPrice: 380,
+          agencyTotal: 380,
+          premiumBrand: 'Mann Filter C30005',
+          premiumUnitPrice: 420,
+          premiumTotal: 420,
+        },
+        {
+          id: 'rem-5',
+          quantity: 1,
+          unit: 'pza',
+          description: 'Filtro de Cabina / Polen con Carbón Activado',
+          agencyBrand: 'OEM KIA 97133-F2000',
+          agencyUnitPrice: 290,
+          agencyTotal: 290,
+          premiumBrand: 'Mann Filter CUK 24013 FreciousPlus',
+          premiumUnitPrice: 390,
+          premiumTotal: 390,
+        },
+        {
+          id: 'rem-6',
+          quantity: 1,
+          unit: 'serv',
+          description: 'Descarbonizado de Inyectores & Cuerpo TPS',
+          agencyBrand: 'Limpieza preventiva con aditivo',
+          agencyUnitPrice: 350,
+          agencyTotal: 350,
+          premiumBrand: 'Limpieza ultrasónica y calibración OBD-II',
+          premiumUnitPrice: 480,
+          premiumTotal: 480,
+        },
+      ],
+    },
+    status: 'confirmada',
+    scheduledDate: '2026-08-24',
+    timeSlot: '15:30 - 18:00',
+    technicianName: 'Luis González',
+    technicianPhone: '3334884592',
+    paymentMethod: 'online_card',
+    paymentStatus: 'pending',
+    cancellationPolicyAccepted: true,
+    serviceRecord: {
+      id: 'rec-1787603395427',
+      appointmentId: 'apt-1787603395427',
+      initialKm: 42350,
+      evidencePhotos: [],
+      installedParts: [
+        { id: 'rem-1', name: 'Aceite de Motor 100% Sintético 5W-30 (5L)', brand: 'Motul 8100 X-cess', installed: true },
+        { id: 'rem-2', name: '4x Bujías NGK Laser Iridium', brand: 'NGK Laser Iridium (0.8mm)', installed: true },
+        { id: 'rem-3', name: 'Filtro de Aceite Blindado', brand: 'Mann Filter Pro W712', installed: true },
+        { id: 'rem-4', name: 'Filtro de Aire Motor', brand: 'Mann Filter C30005', installed: true },
+        { id: 'rem-5', name: 'Filtro de Cabina Carbón', brand: 'Mann Filter CUK 24013', installed: true },
+        { id: 'rem-6', name: 'Descarbonizado de Inyectores & Cuerpo TPS', brand: 'Ultrasonido & Scanner', installed: true },
+      ],
+      mechanicalObservations: 'Servicio de afinación mayor a domicilio con refacciones de autor.',
+      futureRecommendations: 'Próxima afinación en 10,000 km o 6 meses para conservar garantía.',
+    },
+    createdAt: '2026-08-24T17:00:00.000Z',
+  },
+];
+
+export const INITIAL_NOTIFICATIONS: NotificationLog[] = [
+  {
+    id: 'notif-1',
+    appointmentId: 'apt-1787603395427',
+    channel: 'whatsapp',
+    type: 'booking_confirmed',
+    recipient: '3334884592',
+    title: '✅ Cita Confirmada: 24-08-2026 (15:30 - 18:00)',
+    message: 'Hola Emilio González García! Tu cita para KIA Soul ha quedado confirmada. Técnico: Luis González.',
+    timestamp: '2026-08-24T17:05:00.000Z',
+  },
+];
