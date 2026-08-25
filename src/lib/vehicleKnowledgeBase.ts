@@ -1560,8 +1560,8 @@ export const VEHICLE_KNOWLEDGE_BASE: VehicleTechnicalSpec[] = [
 /**
  * Busca las especificaciones oficiales en la base de datos por marca, modelo, VIN o palabras clave
  */
-export function searchVehicleSpecs(query: string): VehicleTechnicalSpec[] {
-  const q = query.toLowerCase().trim();
+export function searchVehicleSpecs(query?: string): VehicleTechnicalSpec[] {
+  const q = (query || '').toLowerCase().trim();
   if (!q) return VEHICLE_KNOWLEDGE_BASE;
 
   return VEHICLE_KNOWLEDGE_BASE.filter((spec) => {
@@ -1578,12 +1578,12 @@ export function searchVehicleSpecs(query: string): VehicleTechnicalSpec[] {
  * Encuentra la especificación más cercana para un vehículo dado
  */
 export function findVehicleSpec(
-  brand: string,
-  model: string,
+  brand?: string,
+  model?: string,
   vin?: string
 ): VehicleTechnicalSpec | null {
-  const b = brand.toLowerCase().trim();
-  const m = model.toLowerCase().trim();
+  const b = (brand || '').toLowerCase().trim();
+  const m = (model || '').toLowerCase().trim();
 
   // 1. Intento por coincidencia de VIN
   if (vin && vin.length >= 3) {
@@ -1594,18 +1594,20 @@ export function findVehicleSpec(
   }
 
   // 2. Intento por Marca y Modelo exacto o parcial
-  const exact = VEHICLE_KNOWLEDGE_BASE.find(
-    (s) =>
-      s.brand.toLowerCase() === b &&
-      (m.includes(s.model.toLowerCase()) ||
-        s.model.toLowerCase().includes(m) ||
-        s.model.toLowerCase().split(' ').some((word) => word.length > 2 && m.includes(word)))
-  );
-  if (exact) return exact;
+  if (b) {
+    const exact = VEHICLE_KNOWLEDGE_BASE.find(
+      (s) =>
+        s.brand.toLowerCase() === b &&
+        (m.includes(s.model.toLowerCase()) ||
+          s.model.toLowerCase().includes(m) ||
+          s.model.toLowerCase().split(' ').some((word) => word.length > 2 && m.includes(word)))
+    );
+    if (exact) return exact;
 
-  // 3. Intento por Marca únicamente
-  const byBrand = VEHICLE_KNOWLEDGE_BASE.find((s) => s.brand.toLowerCase() === b);
-  if (byBrand) return byBrand;
+    // 3. Intento por Marca únicamente
+    const byBrand = VEHICLE_KNOWLEDGE_BASE.find((s) => s.brand.toLowerCase() === b);
+    if (byBrand) return byBrand;
+  }
 
   // 4. Default al primer registro
   return VEHICLE_KNOWLEDGE_BASE[0];

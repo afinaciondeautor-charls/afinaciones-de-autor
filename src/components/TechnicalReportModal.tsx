@@ -107,10 +107,7 @@ export default function TechnicalReportModal({ appointment, isOpen, onClose }: P
                 {appointment.folio}
               </div>
               <div className="text-xs text-slate-600">
-                Fecha:{' '}
-                {appointment.scheduledDate
-                  ? format(new Date(appointment.scheduledDate), 'dd MMMM yyyy', { locale: es })
-                  : 'N/A'}
+                Fecha: {formatDisplayDate(appointment.scheduledDate)}
               </div>
             </div>
           </div>
@@ -123,12 +120,12 @@ export default function TechnicalReportModal({ appointment, isOpen, onClose }: P
                 <UserCheck className="w-3.5 h-3.5 text-slate-700" />
                 <span>Titular del Vehículo</span>
               </div>
-              <div className="text-sm font-bold text-slate-900">{appointment.client.name}</div>
-              <div className="text-slate-600 font-mono">Tel: {appointment.client.phone}</div>
-              <div className="text-slate-600">{appointment.client.email}</div>
+              <div className="text-sm font-bold text-slate-900">{appointment.client?.name || 'Cliente'}</div>
+              <div className="text-slate-600 font-mono">Tel: {appointment.client?.phone || 'N/D'}</div>
+              <div className="text-slate-600">{appointment.client?.email || ''}</div>
               <div className="text-slate-600 flex items-start gap-1 pt-0.5">
                 <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
-                <span>{appointment.client.address}</span>
+                <span>{appointment.client?.address || 'Domicilio'}</span>
               </div>
             </div>
 
@@ -139,12 +136,12 @@ export default function TechnicalReportModal({ appointment, isOpen, onClose }: P
                 <span>Especificaciones del Auto</span>
               </div>
               <div className="text-sm font-bold text-slate-900">
-                {appointment.vehicle.brand} {appointment.vehicle.model} ({appointment.vehicle.year})
+                {appointment.vehicle?.brand || 'Vehículo'} {appointment.vehicle?.model || ''} ({appointment.vehicle?.year || ''})
               </div>
-              <div className="font-mono text-slate-600">Placas: {appointment.vehicle.plates}</div>
-              <div className="font-mono text-slate-600">VIN: {appointment.vehicle.vin}</div>
+              <div className="font-mono text-slate-600">Placas: {appointment.vehicle?.plates || 'S/P'}</div>
+              <div className="font-mono text-slate-600">VIN: {appointment.vehicle?.vin || 'N/D'}</div>
               <div className="text-slate-600 font-mono pt-0.5">
-                Odómetro de Entrada: <strong className="text-slate-900 font-bold">{record?.initialKm || appointment.vehicle.currentKm || 'N/A'} KM</strong>
+                Odómetro de Entrada: <strong className="text-slate-900 font-bold">{record?.initialKm || appointment.vehicle?.currentKm || 'N/A'} KM</strong>
               </div>
             </div>
           </div>
@@ -273,7 +270,7 @@ export default function TechnicalReportModal({ appointment, isOpen, onClose }: P
                     <span className="text-xs text-slate-400 font-mono italic">Firma Digital Registrada</span>
                   )}
                 </div>
-                <span className="text-xs font-bold text-slate-900 block truncate">{appointment.client.name}</span>
+                <span className="text-xs font-bold text-slate-900 block truncate">{appointment.client?.name || 'Cliente'}</span>
                 <span className="text-[10px] text-slate-500 font-mono block">Firma de Conformidad</span>
               </div>
 
