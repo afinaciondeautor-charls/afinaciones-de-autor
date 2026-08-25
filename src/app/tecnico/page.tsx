@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import { Appointment, EvidencePhoto } from '@/types';
 import { getWhatsAppEnRouteLink, getWhatsAppCompletedLink } from '@/lib/whatsapp';
+import { getLocalDateString } from '@/lib/dateUtils';
 import Link from 'next/link';
 
 type TechnicianTab = 'ruta' | 'agendados' | 'realizados' | 'manual';
@@ -109,14 +110,19 @@ export default function TechnicianPage() {
     (a) => a.status !== 'solicitud_pendiente' && a.status !== 'cotizado' && a.status !== 'aprobada_por_cliente'
   );
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalDateString();
 
-  const todayAppointments = activeAppointments.filter(
-    (a) => a.scheduledDate === todayStr || a.status === 'en_camino' || a.status === 'en_servicio'
-  );
-  const upcomingAppointments = activeAppointments.filter(
-    (a) => a.scheduledDate !== todayStr && a.status !== 'en_camino' && a.status !== 'en_servicio' && a.status !== 'completada'
-  );
+  const todayAppointments = activeAppointments.filter((a) => {
+    const aptDate = a.scheduledDate ? a.scheduledDate.slice(0, 10) : todayStr;
+    const isTodayOrPending = aptDate <= todayStr && a.status !== 'completada';
+    const isLive = a.status === 'en_camino' || a.status === 'en_servicio';
+    return isTodayOrPending || isLive;
+  });
+
+  const upcomingAppointments = activeAppointments.filter((a) => {
+    const aptDate = a.scheduledDate ? a.scheduledDate.slice(0, 10) : '';
+    return aptDate > todayStr && a.status !== 'en_camino' && a.status !== 'en_servicio' && a.status !== 'completada';
+  });
 
   const displayedRouteAppointments =
     routeFilter === 'today'

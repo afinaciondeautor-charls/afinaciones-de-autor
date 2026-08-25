@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { getWhatsAppBookingConfirmationLink } from '@/lib/whatsapp';
+import { getLocalDateString } from '@/lib/dateUtils';
 
 interface Props {
   appointment: Appointment;
@@ -61,7 +62,7 @@ export default function AdminApproveQuoteModal({
     appointment.selectedOption || 'premium'
   );
   const [date, setDate] = useState(
-    appointment.scheduledDate || new Date().toISOString().split('T')[0]
+    appointment.scheduledDate || getLocalDateString()
   );
   const [timeSlot, setTimeSlot] = useState(
     appointment.timeSlot || '09:00 - 11:30'
