@@ -280,7 +280,7 @@ export default function TechnicalReportModal({ appointment, isOpen, onClose }: P
               <div className="space-y-1.5">
                 <div className="h-16 flex items-center justify-center border-b border-slate-300 pb-2">
                   <div className="font-mono font-bold text-xs text-slate-800 truncate">
-                    {appointment.technicianName || 'Pedro Almonte'}
+                    {appointment.technicianName || 'Especialista de Autor'}
                   </div>
                 </div>
                 <span className="text-xs font-bold text-slate-900 block">Afinaciones de Autor</span>
