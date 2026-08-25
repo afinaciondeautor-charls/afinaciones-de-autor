@@ -101,7 +101,12 @@ export default function AdminDashboardPage() {
   const pendingQuotes = appointments.filter((a) => a.status === 'solicitud_pendiente');
   const sentQuotes = appointments.filter((a) => a.status === 'cotizado' && !a.selectedOption);
   const approvedQuotes = appointments.filter(
-    (a) => a.status === 'aprobada_por_cliente' || (a.status === 'cotizado' && a.selectedOption)
+    (a) =>
+      (a.status === 'aprobada_por_cliente' || (a.status === 'cotizado' && a.selectedOption)) &&
+      a.status !== 'confirmada' &&
+      a.status !== 'en_camino' &&
+      a.status !== 'en_servicio' &&
+      a.status !== 'completada'
   );
   const confirmedQuotes = appointments.filter((a) => a.status === 'confirmada');
   const inProgressQuotes = appointments.filter((a) => a.status === 'en_camino' || a.status === 'en_servicio');
@@ -136,7 +141,13 @@ export default function AdminDashboardPage() {
     if (quoteFilter === 'pendientes') return apt.status === 'solicitud_pendiente';
     if (quoteFilter === 'enviadas') return apt.status === 'cotizado' && !apt.selectedOption;
     if (quoteFilter === 'aprobadas')
-      return apt.status === 'aprobada_por_cliente' || (apt.status === 'cotizado' && !!apt.selectedOption);
+      return (
+        (apt.status === 'aprobada_por_cliente' || (apt.status === 'cotizado' && !!apt.selectedOption)) &&
+        apt.status !== 'confirmada' &&
+        apt.status !== 'en_camino' &&
+        apt.status !== 'en_servicio' &&
+        apt.status !== 'completada'
+      );
     if (quoteFilter === 'confirmadas') return apt.status === 'confirmada';
     if (quoteFilter === 'programadas') return apt.status === 'en_camino' || apt.status === 'en_servicio';
     if (quoteFilter === 'reagendadas') return apt.status === 'completada' || apt.followUpStatus === 'rebooked';
@@ -927,7 +938,7 @@ export default function AdminDashboardPage() {
               data.technicianPhone
             );
             setSelectedAptForApproval(null);
-            setQuoteFilter('aprobadas');
+            setQuoteFilter('confirmadas');
           }}
         />
       )}

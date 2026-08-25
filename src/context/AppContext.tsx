@@ -310,10 +310,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAppointments((prev) => {
       const updated = prev.map((apt) => {
         if (apt.id !== appointmentId) return apt;
+        // Preservar estatus si la cita ya estaba confirmada o en etapas posteriores
+        const isAdvancedStatus = ['confirmada', 'en_camino', 'en_servicio', 'completada'].includes(apt.status);
         return {
           ...apt,
           quote: dualQuote,
-          status: 'cotizado' as AppointmentStatus,
+          status: isAdvancedStatus ? apt.status : ('cotizado' as AppointmentStatus),
         };
       });
       syncToServer(updated, notifications, scheduleSettings, securitySettings);
@@ -343,14 +345,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAppointments((prev) => {
       const updated = prev.map((apt) => {
         if (apt.id !== appointmentId) return apt;
+        // Preservar estatus si la cita ya estaba confirmada o en etapas posteriores
+        const isAdvancedStatus = ['confirmada', 'en_camino', 'en_servicio', 'completada'].includes(apt.status);
         return {
           ...apt,
           selectedOption,
           scheduledDate: date || apt.scheduledDate,
           timeSlot: timeSlot || apt.timeSlot,
-          paymentMethod,
-          paymentStatus: paymentMethod === 'online_card' ? 'paid' : 'pending',
-          status: 'aprobada_por_cliente' as AppointmentStatus,
+          paymentMethod: paymentMethod || apt.paymentMethod,
+          paymentStatus: paymentMethod === 'online_card' ? 'paid' : apt.paymentStatus || 'pending',
+          status: isAdvancedStatus ? apt.status : ('aprobada_por_cliente' as AppointmentStatus),
         };
       });
       syncToServer(updated, notifications, scheduleSettings, securitySettings);
@@ -382,8 +386,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     technicianPhone?: string
   ) => {
     const defaultTech = securitySettings?.staffMembers?.find((m) => m.role === 'technician' && m.status === 'active') || {
-      name: 'Técnico Especialista de Autor',
-      phone: '+52 33 0000 0000',
+      name: 'Carlos Carranza',
+      phone: '3334884592',
     };
 
     const finalTechName = technicianName || defaultTech.name;
@@ -392,6 +396,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAppointments((prev) => {
       const updated = prev.map((apt) => {
         if (apt.id !== appointmentId) return apt;
+        const isServiceActiveOrDone = ['en_camino', 'en_servicio', 'completada'].includes(apt.status);
         return {
           ...apt,
           selectedOption,
@@ -400,8 +405,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           technicianName: finalTechName,
           technicianPhone: finalTechPhone,
           paymentMethod,
-          paymentStatus: paymentMethod === 'online_card' ? 'paid' : 'pending',
-          status: 'confirmada' as AppointmentStatus,
+          paymentStatus: paymentMethod === 'online_card' ? 'paid' : apt.paymentStatus || 'pending',
+          status: isServiceActiveOrDone ? apt.status : ('confirmada' as AppointmentStatus),
           nextFollowUpDate: new Date(Date.now() + 150 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           followUpStatus: 'pending' as const,
         };
