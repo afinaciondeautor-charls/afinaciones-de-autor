@@ -342,19 +342,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     timeSlot: string,
     paymentMethod: Appointment['paymentMethod']
   ) => {
+    const defaultTech = securitySettings?.staffMembers?.find((m) => m.role === 'technician' && m.status === 'active') || {
+      name: 'Carlos Carranza',
+      phone: '3334884592',
+    };
+
     setAppointments((prev) => {
       const updated = prev.map((apt) => {
         if (apt.id !== appointmentId) return apt;
-        // Preservar estatus si la cita ya estaba confirmada o en etapas posteriores
-        const isAdvancedStatus = ['confirmada', 'en_camino', 'en_servicio', 'completada'].includes(apt.status);
+        const isAdvancedStatus = ['en_camino', 'en_servicio', 'completada'].includes(apt.status);
+        const finalTechName = apt.technicianName && apt.technicianName !== 'Por asignar al confirmar' ? apt.technicianName : defaultTech.name;
+        const finalTechPhone = apt.technicianPhone || defaultTech.phone;
         return {
           ...apt,
           selectedOption,
           scheduledDate: date || apt.scheduledDate,
           timeSlot: timeSlot || apt.timeSlot,
           paymentMethod: paymentMethod || apt.paymentMethod,
+          technicianName: finalTechName,
+          technicianPhone: finalTechPhone,
           paymentStatus: paymentMethod === 'online_card' ? 'paid' : apt.paymentStatus || 'pending',
-          status: isAdvancedStatus ? apt.status : ('aprobada_por_cliente' as AppointmentStatus),
+          status: isAdvancedStatus ? apt.status : ('confirmada' as AppointmentStatus),
+          nextFollowUpDate: new Date(Date.now() + 150 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          followUpStatus: 'pending' as const,
         };
       });
       syncToServer(updated, notifications, scheduleSettings, securitySettings);
@@ -365,13 +375,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (apt) {
       addNotification({
         appointmentId,
-        channel: 'email',
-        type: 'quote_request',
-        recipient: apt.client.email,
-        title: `✨ Presupuesto Aprobado por el Cliente (Folio ${apt.folio})`,
-        message: `El cliente ${apt.client.name} ha autorizado la ${
-          selectedOption === 'premium' ? 'Opción De Autor' : 'Opción Agencia'
-        }. Por favor revisa y confirma la cita oficial en el Panel Admin.`,
+        channel: 'whatsapp',
+        type: 'booking_confirmed',
+        recipient: apt.client.phone,
+        title: `✅ Cita Confirmada: ${date || apt.scheduledDate} (${timeSlot || apt.timeSlot})`,
+        message: `Excelente ${apt.client.name}! Tu servicio de Afinación de Autor a domicilio ha quedado confirmado para el ${date || apt.scheduledDate} en el horario de ${timeSlot || apt.timeSlot}. Técnico asignado: ${apt.technicianName || defaultTech.name}.`,
       });
     }
   };

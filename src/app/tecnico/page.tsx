@@ -93,7 +93,7 @@ export default function TechnicianPage() {
 
   // Filtrar citas asignadas para campo
   const activeAppointments = appointments.filter(
-    (a) => a.status !== 'solicitud_pendiente' && a.status !== 'cotizado' && a.status !== 'aprobada_por_cliente'
+    (a) => a.status !== 'solicitud_pendiente' && (a.status !== 'cotizado' || !!a.selectedOption)
   );
 
   const todayStr = getLocalDateString();
