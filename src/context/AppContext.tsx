@@ -328,9 +328,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         appointmentId,
         channel: 'whatsapp',
         type: 'quote_ready',
-        recipient: apt.client.phone,
-        title: `⚡ Tu Presupuesto Dual por VIN está listo (Folio ${apt.folio})`,
-        message: `Hola ${apt.client.name}! Hemos preparado tu cotización para el ${apt.vehicle.brand} ${apt.vehicle.model}: Opción Agencia $${dualQuote.agency.price.toLocaleString()} MXN vs Opción De Autor $${dualQuote.premium.price.toLocaleString()} MXN. Elige tu opción para confirmar tu cita.`,
+        recipient: apt.client?.phone || '',
+        title: `⚡ Tu Presupuesto Dual por VIN está listo (Folio ${apt.folio || 'ADA'})`,
+        message: `Hola ${apt.client?.name || 'Cliente'}! Hemos preparado tu cotización para el ${apt.vehicle?.brand || 'Vehículo'} ${apt.vehicle?.model || ''}: Opción Agencia $${(dualQuote.agency?.price || 0).toLocaleString()} MXN vs Opción De Autor $${(dualQuote.premium?.price || 0).toLocaleString()} MXN. Elige tu opción para confirmar tu cita.`,
       });
     }
   };
@@ -366,9 +366,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         appointmentId,
         channel: 'email',
         type: 'quote_request',
-        recipient: apt.client.email,
-        title: `✨ Presupuesto Aprobado por el Cliente (Folio ${apt.folio})`,
-        message: `El cliente ${apt.client.name} ha autorizado la ${
+        recipient: apt.client?.email || '',
+        title: `✨ Presupuesto Aprobado por el Cliente (Folio ${apt.folio || 'ADA'})`,
+        message: `El cliente ${apt.client?.name || 'Cliente'} ha autorizado la ${
           selectedOption === 'premium' ? 'Opción De Autor' : 'Opción Agencia'
         }. Por favor revisa y confirma la cita oficial en el Panel Admin.`,
       });
@@ -384,13 +384,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     technicianName?: string,
     technicianPhone?: string
   ) => {
-    const defaultTech = securitySettings?.staffMembers?.find((m) => m.role === 'technician' && m.status === 'active') || {
-      name: 'Carlos Carranza',
-      phone: '3334884592',
-    };
-
-    const finalTechName = technicianName || defaultTech.name;
-    const finalTechPhone = technicianPhone || defaultTech.phone;
+    const finalTechName = technicianName || 'Carlos Carranza';
+    const finalTechPhone = technicianPhone || '3334884592';
 
     setAppointments((prev) => {
       const updated = prev.map((apt) => {
@@ -420,9 +415,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         appointmentId,
         channel: 'whatsapp',
         type: 'booking_confirmed',
-        recipient: apt.client.phone,
+        recipient: apt.client?.phone || '',
         title: `✅ Cita Confirmada: ${date} (${timeSlot})`,
-        message: `Excelente ${apt.client.name}! Tu servicio de Afinación de Autor a domicilio ha quedado confirmado para el ${date} en el horario de ${timeSlot}. Técnico asignado: ${finalTechName}.`,
+        message: `Excelente ${apt.client?.name || 'Cliente'}! Tu servicio de Afinación de Autor a domicilio ha quedado confirmado para el ${date} en el horario de ${timeSlot}. Técnico asignado: ${finalTechName}.`,
       });
     }
   };
@@ -448,25 +443,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         appointmentId,
         channel: 'whatsapp',
         type: 'technician_en_route',
-        recipient: apt.client.phone,
+        recipient: apt.client?.phone || '',
         title: '🚗 Tu Técnico Especialista va en camino',
-        message: `Hola ${apt.client.name}! El técnico ${apt.technicianName || 'Especialista de Autor'} va en camino a tu domicilio (${apt.client.address}). Estimado de arribo: 25-35 mins.`,
+        message: `Hola ${apt.client?.name || 'Cliente'}! El técnico ${apt.technicianName || 'Especialista de Autor'} va en camino a tu domicilio (${apt.client?.address || 'tu ubicación'}). Estimado de arribo: 25-35 mins.`,
       });
     } else if (status === 'completada') {
       addNotification({
         appointmentId,
         channel: 'whatsapp',
         type: 'service_completed_pdf',
-        recipient: apt.client.phone,
+        recipient: apt.client?.phone || '',
         title: '🎉 Servicio Finalizado con Éxito',
-        message: `Hola ${apt.client.name}! Tu servicio ha sido completado satisfactoriamente. Tu póliza de garantía y Reporte Técnico digital certificado ya están disponibles.`,
+        message: `Hola ${apt.client?.name || 'Cliente'}! Tu servicio ha sido completado satisfactoriamente. Tu póliza de garantía y Reporte Técnico digital certificado ya están disponibles.`,
       });
       addNotification({
         appointmentId,
         channel: 'email',
         type: 'service_completed_pdf',
-        recipient: apt.client.email,
-        title: `Reporte Técnico & Póliza de Garantía - ${apt.vehicle.brand} ${apt.vehicle.model}`,
+        recipient: apt.client?.email || '',
+        title: `Reporte Técnico & Póliza de Garantía - ${apt.vehicle?.brand || 'Vehículo'} ${apt.vehicle?.model || ''}`,
         message: `Adjuntamos tu Reporte Técnico digital con bitácora fotográfica de antes/después y firma de garantía de Afinaciones de Autor.`,
       });
     }
@@ -479,7 +474,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const currentRecord = apt.serviceRecord || {
           id: 'rec-' + Date.now(),
           appointmentId,
-          initialKm: apt.vehicle.currentKm || 40000,
+          initialKm: apt.vehicle?.currentKm || 40000,
           evidencePhotos: [],
           installedParts: [],
           mechanicalObservations: '',
@@ -513,7 +508,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const currentRecord = apt.serviceRecord || {
           id: 'rec-' + Date.now(),
           appointmentId,
-          initialKm: apt.vehicle.currentKm || 40000,
+          initialKm: apt.vehicle?.currentKm || 40000,
           evidencePhotos: [],
           installedParts: [],
           mechanicalObservations: '',
@@ -542,16 +537,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         appointmentId,
         channel: 'whatsapp',
         type: 'service_completed_pdf',
-        recipient: apt.client.phone,
+        recipient: apt.client?.phone || '',
         title: '🎉 Servicio Finalizado y Cobrado con Éxito',
-        message: `Hola ${apt.client.name}! Tu servicio ha sido completado y cobrado satisfactoriamente. Tu póliza de garantía y Reporte Técnico digital certificado ya están disponibles.`,
+        message: `Hola ${apt.client?.name || 'Cliente'}! Tu servicio ha sido completado y cobrado satisfactoriamente. Tu póliza de garantía y Reporte Técnico digital certificado ya están disponibles.`,
       });
       addNotification({
         appointmentId,
         channel: 'email',
         type: 'service_completed_pdf',
-        recipient: apt.client.email,
-        title: `Reporte Técnico & Póliza de Garantía - ${apt.vehicle.brand} ${apt.vehicle.model}`,
+        recipient: apt.client?.email || '',
+        title: `Reporte Técnico & Póliza de Garantía - ${apt.vehicle?.brand || 'Vehículo'} ${apt.vehicle?.model || ''}`,
         message: `Adjuntamos tu Reporte Técnico digital con bitácora fotográfica de antes/después y firma de garantía de Afinaciones de Autor.`,
       });
     }
