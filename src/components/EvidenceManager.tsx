@@ -10,7 +10,7 @@ interface Props {
   onChange: (photos: EvidencePhoto[]) => void;
   installedParts?: InstalledPart[];
   quote?: DualQuote;
-  selectedOption?: 'agency' | 'premium';
+  selectedOption?: 'agency' | 'premium' | 'agencia';
 }
 
 interface EvidenceCategoryConfig {

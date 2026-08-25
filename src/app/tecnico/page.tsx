@@ -46,7 +46,7 @@ import {
   QrCode,
   Smartphone,
 } from 'lucide-react';
-import { Appointment, EvidencePhoto } from '@/types';
+import { Appointment, EvidencePhoto, InstalledPart, ServiceRecord } from '@/types';
 import {
   getWhatsAppEnRouteLink,
   getWhatsAppCompletedLink,
@@ -216,7 +216,7 @@ export default function TechnicianPage() {
       defaultParts = quoteRemision.map((it) => ({
         id: it.id,
         name: it.description,
-        brand: chosenOption === 'agency' ? it.agencyBrand : it.premiumBrand,
+        brand: chosenOption === 'agency' || chosenOption === 'agencia' ? it.agencyBrand : it.premiumBrand,
         installed: true,
       }));
     } else {
@@ -291,13 +291,23 @@ export default function TechnicianPage() {
     };
     const paymentLabel = methodLabels[paymentMethodSelected || 'on_site_card'] || 'Pago en Sitio';
 
+    const currentRec = currentAppointment.serviceRecord || {
+      id: 'rec-' + Date.now(),
+      appointmentId: currentAppointment.id,
+      evidencePhotos: [],
+      installedParts: [],
+      mechanicalObservations: '',
+      futureRecommendations: '',
+      initialKm: Number(initialKmInput) || currentAppointment.vehicle?.currentKm || 0,
+    };
+
     const updatedApt: Appointment = {
       ...currentAppointment,
       status: 'completada' as const,
       paymentMethod: paymentMethodSelected,
       paymentStatus: 'paid' as const,
       serviceRecord: {
-        ...(currentAppointment.serviceRecord || {}),
+        ...currentRec,
         clientSignatureUrl: signatureToSave,
         signedByName: currentAppointment.client?.name || 'Cliente',
         completedAt: new Date().toISOString(),
@@ -1105,13 +1115,13 @@ export default function TechnicianPage() {
                                 Total del Servicio a Cobrar:
                               </span>
                               <div className="text-xl sm:text-2xl font-black text-slate-900">
-                                {currentAppointment?.selectedOption === 'agency'
+                                {currentAppointment?.selectedOption === 'agency' || currentAppointment?.selectedOption === 'agencia'
                                   ? `$${(currentAppointment?.quote?.agency?.price || 3300).toLocaleString()} MXN`
                                   : `$${(currentAppointment?.quote?.premium?.price || 3750).toLocaleString()} MXN`}
                               </div>
                             </div>
                             <span className="text-xs font-mono font-bold px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
-                              {currentAppointment?.selectedOption === 'agency' ? 'Opción Agencia' : 'Opción De Autor'}
+                              {currentAppointment?.selectedOption === 'agency' || currentAppointment?.selectedOption === 'agencia' ? 'Opción Agencia' : 'Opción De Autor'}
                             </span>
                           </div>
 

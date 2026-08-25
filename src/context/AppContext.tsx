@@ -179,7 +179,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         vin: '',
         currentKm: 45000,
       },
-      packageType: data.packageType || 'mayor',
+      packageType: data.packageType || 'afinacion_mayor',
       status: 'solicitud_pendiente',
       scheduledDate: data.scheduledDate || new Date().toISOString().split('T')[0],
       timeSlot: data.timeSlot || '09:00 - 11:30',

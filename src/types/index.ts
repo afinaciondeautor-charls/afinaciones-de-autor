@@ -6,7 +6,7 @@ export type ServicePackageType =
   | 'diagnostico'
   | 'otro_servicio';
 
-export type QuoteOptionType = 'agencia' | 'premium';
+export type QuoteOptionType = 'agencia' | 'premium' | 'agency';
 
 export type AppointmentStatus =
   | 'solicitud_pendiente'
@@ -18,7 +18,7 @@ export type AppointmentStatus =
   | 'completada'
   | 'cancelada';
 
-export type PaymentMethod = 'online_card' | 'on_site_card' | 'on_site_cash';
+export type PaymentMethod = 'online_card' | 'on_site_card' | 'on_site_cash' | 'cash' | 'transfer';
 export type PaymentStatus = 'pending' | 'paid' | 'penalized' | 'refunded';
 
 export interface Vehicle {
@@ -148,7 +148,7 @@ export interface Appointment {
 export interface NotificationLog {
   id: string;
   appointmentId: string;
-  type: 'quote_ready' | 'booking_confirmed' | 'technician_en_route' | 'service_completed_pdf' | 'cancellation_alert' | 'followup_5month';
+  type: 'quote_ready' | 'quote_request' | 'booking_confirmed' | 'technician_en_route' | 'service_completed_pdf' | 'cancellation_alert' | 'followup_5month';
   channel: 'email' | 'whatsapp';
   recipient: string;
   title: string;

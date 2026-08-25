@@ -101,12 +101,7 @@ export default function AdminDashboardPage() {
   const pendingQuotes = appointments.filter((a) => a.status === 'solicitud_pendiente');
   const sentQuotes = appointments.filter((a) => a.status === 'cotizado' && !a.selectedOption);
   const approvedQuotes = appointments.filter(
-    (a) =>
-      (a.status === 'aprobada_por_cliente' || (a.status === 'cotizado' && a.selectedOption)) &&
-      a.status !== 'confirmada' &&
-      a.status !== 'en_camino' &&
-      a.status !== 'en_servicio' &&
-      a.status !== 'completada'
+    (a) => a.status === 'aprobada_por_cliente' || (a.status === 'cotizado' && !!a.selectedOption)
   );
   const confirmedQuotes = appointments.filter((a) => a.status === 'confirmada');
   const inProgressQuotes = appointments.filter((a) => a.status === 'en_camino' || a.status === 'en_servicio');
@@ -121,7 +116,7 @@ export default function AdminDashboardPage() {
     .filter((a) => a.status === 'completada' || a.paymentStatus === 'paid')
     .reduce((acc, curr) => {
       const price =
-        curr.selectedOption === 'agencia'
+        curr.selectedOption === 'agencia' || curr.selectedOption === 'agency'
           ? curr.quote?.agency.price || 3850
           : curr.quote?.premium.price || 4450;
       return acc + price;
@@ -141,13 +136,7 @@ export default function AdminDashboardPage() {
     if (quoteFilter === 'pendientes') return apt.status === 'solicitud_pendiente';
     if (quoteFilter === 'enviadas') return apt.status === 'cotizado' && !apt.selectedOption;
     if (quoteFilter === 'aprobadas')
-      return (
-        (apt.status === 'aprobada_por_cliente' || (apt.status === 'cotizado' && !!apt.selectedOption)) &&
-        apt.status !== 'confirmada' &&
-        apt.status !== 'en_camino' &&
-        apt.status !== 'en_servicio' &&
-        apt.status !== 'completada'
-      );
+      return apt.status === 'aprobada_por_cliente' || (apt.status === 'cotizado' && !!apt.selectedOption);
     if (quoteFilter === 'confirmadas') return apt.status === 'confirmada';
     if (quoteFilter === 'programadas') return apt.status === 'en_camino' || apt.status === 'en_servicio';
     if (quoteFilter === 'reagendadas') return apt.status === 'completada' || apt.followUpStatus === 'rebooked';
@@ -575,11 +564,7 @@ export default function AdminDashboardPage() {
                         const isPending = apt.status === 'solicitud_pendiente';
                         const isSent = apt.status === 'cotizado' && !apt.selectedOption;
                         const isClientApproved =
-                          (apt.status === 'aprobada_por_cliente' || (apt.status === 'cotizado' && !!apt.selectedOption)) &&
-                          apt.status !== 'confirmada' &&
-                          apt.status !== 'en_camino' &&
-                          apt.status !== 'en_servicio' &&
-                          apt.status !== 'completada';
+                          apt.status === 'aprobada_por_cliente' || (apt.status === 'cotizado' && !!apt.selectedOption);
                         const isConfirmed = apt.status === 'confirmada';
                         const isInProgress = apt.status === 'en_camino' || apt.status === 'en_servicio';
                         const isCompleted = apt.status === 'completada';

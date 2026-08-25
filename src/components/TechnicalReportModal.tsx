@@ -3,8 +3,7 @@
 import React from 'react';
 import { Appointment } from '@/types';
 import { X, Printer, CheckCircle2, Shield, MapPin, Gauge, UserCheck, MessageSquare, Download } from 'lucide-react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { formatDisplayDate } from '@/lib/dateUtils';
 import { getWhatsAppCompletedLink } from '@/lib/whatsapp';
 
 interface Props {
