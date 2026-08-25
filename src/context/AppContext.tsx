@@ -149,23 +149,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch (e) {
         // quiet error
       }
-    }, 2500);
+    }, 4000);
 
     return () => clearInterval(interval);
   }, []);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    try {
-      localStorage.setItem(
-        LOCAL_STORAGE_KEY,
-        JSON.stringify({ appointments, notifications, scheduleSettings, securitySettings })
-      );
-      syncToServer(appointments, notifications, scheduleSettings, securitySettings);
-    } catch (e) {
-      console.error('Failed to save to storage', e);
-    }
-  }, [appointments, notifications, scheduleSettings, securitySettings, isLoaded]);
 
   const addNotification = (notif: Omit<NotificationLog, 'id' | 'timestamp'>) => {
     const newNotif: NotificationLog = {
