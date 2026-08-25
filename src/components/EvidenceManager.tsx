@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { EvidencePhoto } from '@/types';
-import { Camera, CheckCircle2, Eye, RotateCcw, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { Camera, CheckCircle2, Eye, RotateCcw, Image as ImageIcon, Trash2, Loader2 } from 'lucide-react';
+import { compressImage } from '@/lib/imageUtils';
 
 interface Props {
   photos: EvidencePhoto[];
@@ -44,6 +45,7 @@ const DEFAULT_CATEGORIES = [
 
 export default function EvidenceManager({ photos, onChange }: Props) {
   const [activePreview, setActivePreview] = useState<string | null>(null);
+  const [processingSlots, setProcessingSlots] = useState<Record<string, boolean>>({});
 
   const updatePhoto = (
     category: EvidencePhoto['category'],
@@ -74,7 +76,7 @@ export default function EvidenceManager({ photos, onChange }: Props) {
     onChange(updatedList);
   };
 
-  const handleFileUpload = (
+  const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     category: EvidencePhoto['category'],
     type: 'before' | 'after'
@@ -82,13 +84,28 @@ export default function EvidenceManager({ photos, onChange }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        updatePhoto(category, type, reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
+    const slotKey = `${category}_${type}`;
+    setProcessingSlots((prev) => ({ ...prev, [slotKey]: true }));
+
+    try {
+      // Comprime la imagen del celular a ~150KB en alta definición
+      const compressedDataUrl = await compressImage(file, 1280, 1280, 0.75);
+      updatePhoto(category, type, compressedDataUrl);
+    } catch (err) {
+      console.error('Error al comprimir foto:', err);
+      // Fallback a lectura estándar si falla compresión
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          updatePhoto(category, type, reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setProcessingSlots((prev) => ({ ...prev, [slotKey]: false }));
+      // Reset input value para permitir tomar otra foto si se desea
+      e.target.value = '';
+    }
   };
 
   const handleRemovePhoto = (
@@ -175,7 +192,12 @@ export default function EvidenceManager({ photos, onChange }: Props) {
                   </span>
 
                   <div className="relative min-h-[140px] rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 hover:border-slate-300 overflow-hidden flex items-center justify-center transition">
-                    {current?.beforePhotoUrl ? (
+                    {processingSlots[`${cat.category}_before`] ? (
+                      <div className="flex flex-col items-center justify-center p-6 text-center text-rose-700 w-full h-36">
+                        <Loader2 className="w-7 h-7 animate-spin mb-2" />
+                        <span className="text-xs font-bold font-mono">Optimizando evidencia...</span>
+                      </div>
+                    ) : current?.beforePhotoUrl ? (
                       <div className="relative w-full h-36 group">
                         <img
                           src={current.beforePhotoUrl}
@@ -186,7 +208,7 @@ export default function EvidenceManager({ photos, onChange }: Props) {
                           <button
                             type="button"
                             onClick={() => setActivePreview(current.beforePhotoUrl!)}
-                            className="p-2 bg-white/90 text-slate-900 rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm"
+                            className="p-2 bg-white/90 text-slate-900 rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm cursor-pointer"
                             title="Ver imagen grande"
                           >
                             <Eye className="w-3.5 h-3.5" />
@@ -195,7 +217,7 @@ export default function EvidenceManager({ photos, onChange }: Props) {
                           <button
                             type="button"
                             onClick={() => handleRemovePhoto(cat.category, 'before')}
-                            className="p-2 bg-rose-600 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm"
+                            className="p-2 bg-rose-600 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm cursor-pointer"
                             title="Quitar foto"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -228,7 +250,12 @@ export default function EvidenceManager({ photos, onChange }: Props) {
                   </span>
 
                   <div className="relative min-h-[140px] rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 hover:border-slate-300 overflow-hidden flex items-center justify-center transition">
-                    {current?.afterPhotoUrl ? (
+                    {processingSlots[`${cat.category}_after`] ? (
+                      <div className="flex flex-col items-center justify-center p-6 text-center text-emerald-700 w-full h-36">
+                        <Loader2 className="w-7 h-7 animate-spin mb-2" />
+                        <span className="text-xs font-bold font-mono">Optimizando evidencia...</span>
+                      </div>
+                    ) : current?.afterPhotoUrl ? (
                       <div className="relative w-full h-36 group">
                         <img
                           src={current.afterPhotoUrl}
@@ -239,7 +266,7 @@ export default function EvidenceManager({ photos, onChange }: Props) {
                           <button
                             type="button"
                             onClick={() => setActivePreview(current.afterPhotoUrl!)}
-                            className="p-2 bg-white/90 text-slate-900 rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm"
+                            className="p-2 bg-white/90 text-slate-900 rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm cursor-pointer"
                             title="Ver imagen grande"
                           >
                             <Eye className="w-3.5 h-3.5" />
@@ -248,7 +275,7 @@ export default function EvidenceManager({ photos, onChange }: Props) {
                           <button
                             type="button"
                             onClick={() => handleRemovePhoto(cat.category, 'after')}
-                            className="p-2 bg-rose-600 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm"
+                            className="p-2 bg-rose-600 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm cursor-pointer"
                             title="Quitar foto"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

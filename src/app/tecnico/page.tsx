@@ -820,9 +820,9 @@ export default function TechnicianPage() {
                               onClick={() => {
                                 setIsExecutingAptId(apt.id);
                               }}
-                              className="py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center gap-2 shadow-md cursor-pointer transition active:scale-95 animate-pulse"
+                              className="py-3 px-5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2.5 shadow-md shadow-emerald-700/20 cursor-pointer transition-all active:scale-98 border border-emerald-500/30"
                             >
-                              <MapPin className="w-4 h-4 text-white" />
+                              <MapPin className="w-4 h-4 text-white shrink-0" />
                               <span>📍 ¡Ya Llegué! • Iniciar Servicio</span>
                             </button>
                           ) : isInService ? (
@@ -953,9 +953,9 @@ export default function TechnicianPage() {
                     <button
                       type="button"
                       onClick={handleStartService}
-                      className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-xl flex items-center justify-center gap-2 shadow-md transition cursor-pointer active:scale-95"
+                      className="w-full py-4 px-6 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-emerald-700/20 transition-all cursor-pointer active:scale-98 tracking-wide border border-emerald-500/30"
                     >
-                      <Play className="w-5 h-5" />
+                      <Play className="w-5 h-5 fill-white text-white shrink-0" />
                       <span>📍 ¡Confirmar Llegada e Iniciar Servicio!</span>
                     </button>
                   </div>
