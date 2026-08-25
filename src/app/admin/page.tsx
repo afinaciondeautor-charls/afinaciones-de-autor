@@ -100,14 +100,18 @@ export default function AdminDashboardPage() {
   // Counts by status
   const pendingQuotes = appointments.filter((a) => a.status === 'solicitud_pendiente');
   const sentQuotes = appointments.filter((a) => a.status === 'cotizado' && !a.selectedOption);
-  const confirmedQuotes = appointments.filter(
-    (a) => a.status === 'confirmada' || a.status === 'aprobada_por_cliente' || (a.status === 'cotizado' && !!a.selectedOption)
+  const approvedQuotes = appointments.filter(
+    (a) =>
+      (a.status === 'aprobada_por_cliente' || (a.status === 'cotizado' && a.selectedOption)) &&
+      a.status !== 'confirmada' &&
+      a.status !== 'en_camino' &&
+      a.status !== 'en_servicio' &&
+      a.status !== 'completada'
   );
+  const confirmedQuotes = appointments.filter((a) => a.status === 'confirmada');
   const inProgressQuotes = appointments.filter((a) => a.status === 'en_camino' || a.status === 'en_servicio');
   const rebookedQuotes = appointments.filter((a) => a.status === 'completada' || a.followUpStatus === 'rebooked');
-  const activeBookings = appointments.filter(
-    (a) => a.status !== 'solicitud_pendiente' && (a.status !== 'cotizado' || !!a.selectedOption)
-  );
+  const activeBookings = appointments.filter((a) => a.status !== 'solicitud_pendiente');
   const followUpCandidates = appointments.filter(
     (a) => a.status === 'completada' || a.nextFollowUpDate || a.followUpStatus
   );
@@ -136,8 +140,15 @@ export default function AdminDashboardPage() {
 
     if (quoteFilter === 'pendientes') return apt.status === 'solicitud_pendiente';
     if (quoteFilter === 'enviadas') return apt.status === 'cotizado' && !apt.selectedOption;
-    if (quoteFilter === 'confirmadas' || quoteFilter === 'aprobadas')
-      return apt.status === 'confirmada' || apt.status === 'aprobada_por_cliente' || (apt.status === 'cotizado' && !!apt.selectedOption);
+    if (quoteFilter === 'aprobadas')
+      return (
+        (apt.status === 'aprobada_por_cliente' || (apt.status === 'cotizado' && !!apt.selectedOption)) &&
+        apt.status !== 'confirmada' &&
+        apt.status !== 'en_camino' &&
+        apt.status !== 'en_servicio' &&
+        apt.status !== 'completada'
+      );
+    if (quoteFilter === 'confirmadas') return apt.status === 'confirmada';
     if (quoteFilter === 'programadas') return apt.status === 'en_camino' || apt.status === 'en_servicio';
     if (quoteFilter === 'reagendadas') return apt.status === 'completada' || apt.followUpStatus === 'rebooked';
 
@@ -473,6 +484,19 @@ export default function AdminDashboardPage() {
 
                       <button
                         type="button"
+                        onClick={() => setQuoteFilter('aprobadas')}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                          quoteFilter === 'aprobadas'
+                            ? 'bg-amber-100 text-amber-950 border border-amber-300 font-bold'
+                            : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-amber-50/50'
+                        }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        <span>Aprobadas ({approvedQuotes.length})</span>
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => setQuoteFilter('confirmadas')}
                         className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
                           quoteFilter === 'confirmadas'
@@ -550,8 +574,13 @@ export default function AdminDashboardPage() {
                       filteredQuotes.map((apt) => {
                         const isPending = apt.status === 'solicitud_pendiente';
                         const isSent = apt.status === 'cotizado' && !apt.selectedOption;
-                        const isConfirmed =
-                          apt.status === 'confirmada' || apt.status === 'aprobada_por_cliente' || (apt.status === 'cotizado' && !!apt.selectedOption);
+                        const isClientApproved =
+                          (apt.status === 'aprobada_por_cliente' || (apt.status === 'cotizado' && !!apt.selectedOption)) &&
+                          apt.status !== 'confirmada' &&
+                          apt.status !== 'en_camino' &&
+                          apt.status !== 'en_servicio' &&
+                          apt.status !== 'completada';
+                        const isConfirmed = apt.status === 'confirmada';
                         const isInProgress = apt.status === 'en_camino' || apt.status === 'en_servicio';
                         const isCompleted = apt.status === 'completada';
 
@@ -575,6 +604,11 @@ export default function AdminDashboardPage() {
                                 {isSent && (
                                   <span className="text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-blue-50 text-blue-900 border border-blue-200">
                                     Enviada al Cliente
+                                  </span>
+                                )}
+                                {isClientApproved && (
+                                  <span className="text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-amber-100 text-amber-950 border border-amber-300 font-bold">
+                                    Aprobada por Cliente
                                   </span>
                                 )}
                                 {isConfirmed && !isInProgress && !isCompleted && (
@@ -656,8 +690,8 @@ export default function AdminDashboardPage() {
                               </div>
 
                               <div className="flex flex-wrap items-center gap-2.5">
-                                {/* Botón Confirmar Cotización si aún no está confirmada */}
-                                {apt.quote && !isConfirmed && (
+                                {/* Botón Confirmar Cotización / Cita Oficial para Aprobadas */}
+                                {apt.quote && isClientApproved && (
                                   <button
                                     type="button"
                                     onClick={() => setSelectedAptForApproval(apt)}
@@ -666,6 +700,19 @@ export default function AdminDashboardPage() {
                                   >
                                     <CheckCircle2 className="w-3.5 h-3.5 text-amber-300" />
                                     <span>Confirmar Cita & Notificar</span>
+                                  </button>
+                                )}
+
+                                {/* Botón Confirmar Cotización para Pendientes / Enviadas */}
+                                {apt.quote && (isPending || isSent) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedAptForApproval(apt)}
+                                    className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-2xs transition cursor-pointer active:scale-95"
+                                    title="Confirmar cita directamente"
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-amber-300" />
+                                    <span>Confirmar / Aprobar Cita</span>
                                   </button>
                                 )}
 
