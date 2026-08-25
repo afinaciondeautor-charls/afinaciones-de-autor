@@ -101,15 +101,6 @@ values (
       "createdAt": "2026-08-24T10:00:00Z"
     },
     {
-      "id": "staff-2",
-      "name": "Luis González",
-      "phone": "3334884592",
-      "role": "technician",
-      "status": "active",
-      "pin": "123456",
-      "createdAt": "2026-08-24T10:00:00Z"
-    },
-    {
       "id": "staff-3",
       "name": "Carlos Carranza",
       "phone": "3334884592",

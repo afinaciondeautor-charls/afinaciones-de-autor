@@ -19,15 +19,6 @@ export const INITIAL_SECURITY_SETTINGS: SecuritySettings = {
       createdAt: '2026-08-24T10:00:00.000Z',
     },
     {
-      id: 'staff-2',
-      name: 'Luis González',
-      phone: '3334884592',
-      role: 'technician',
-      status: 'active',
-      pin: '123456',
-      createdAt: '2026-08-24T10:00:00.000Z',
-    },
-    {
       id: 'staff-3',
       name: 'Carlos Carranza',
       phone: '3334884592',
@@ -197,7 +188,7 @@ export const INITIAL_APPOINTMENTS: Appointment[] = [
     status: 'confirmada',
     scheduledDate: '2026-08-24',
     timeSlot: '15:30 - 18:00',
-    technicianName: 'Luis González',
+    technicianName: 'Carlos Carranza',
     technicianPhone: '3334884592',
     paymentMethod: 'online_card',
     paymentStatus: 'pending',
@@ -230,7 +221,7 @@ export const INITIAL_NOTIFICATIONS: NotificationLog[] = [
     type: 'booking_confirmed',
     recipient: '3334884592',
     title: '✅ Cita Confirmada: Emilio González García',
-    message: 'Cita confirmada para KIA Soul (DSS-421-5). Técnico: Luis González.',
+    message: 'Cita confirmada para KIA Soul (DSS-421-5). Técnico: Carlos Carranza.',
     timestamp: '2026-08-24T17:05:00.000Z',
   },
 ];
