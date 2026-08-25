@@ -131,6 +131,7 @@ export default function TechnicianPage() {
   const selectedAppointmentId = isExecutingAptId || inProgressServices[0]?.id || scheduledServices[0]?.id || activeAppointments[0]?.id || '';
 
   const [showReportModal, setShowReportModal] = useState(false);
+  const [reportModalApt, setReportModalApt] = useState<Appointment | null>(null);
   const [showManualModal, setShowManualModal] = useState(false);
   const [initialKmInput, setInitialKmInput] = useState<string>('');
   const [observationsInput, setObservationsInput] = useState<string>('');
@@ -142,7 +143,7 @@ export default function TechnicianPage() {
   const [isWorkTimerRunning, setIsWorkTimerRunning] = useState<boolean>(true);
 
   const currentAppointment =
-    appointments.find((a) => a.id === selectedAppointmentId) || activeAppointments[0];
+    appointments.find((a) => a.id === selectedAppointmentId) || activeAppointments[0] || null;
 
   useEffect(() => {
     if (currentAppointment) {
@@ -290,6 +291,22 @@ export default function TechnicianPage() {
     };
     const paymentLabel = methodLabels[paymentMethodSelected || 'on_site_card'] || 'Pago en Sitio';
 
+    const updatedApt: Appointment = {
+      ...currentAppointment,
+      status: 'completada' as const,
+      paymentMethod: paymentMethodSelected,
+      paymentStatus: 'paid' as const,
+      serviceRecord: {
+        ...(currentAppointment.serviceRecord || {}),
+        clientSignatureUrl: signatureToSave,
+        signedByName: currentAppointment.client?.name || 'Cliente',
+        completedAt: new Date().toISOString(),
+        mechanicalObservations: observationsInput || record?.mechanicalObservations || 'Servicio de afinación mayor a domicilio completado satisfactoriamente.',
+        futureRecommendations: recommendationsInput || record?.futureRecommendations || 'Realizar siguiente servicio en 6 meses o 10,000 KM.',
+        initialKm: Number(initialKmInput) || record?.initialKm || currentAppointment.vehicle?.currentKm || 0,
+      },
+    };
+
     finalizeService(
       currentAppointment.id,
       {
@@ -310,10 +327,11 @@ export default function TechnicianPage() {
     setIsWorkTimerRunning(false);
     setIsExecutingAptId(null);
     setActiveTab('realizados');
+    setReportModalApt(updatedApt);
     setShowReportModal(true);
 
     const waCompletedUrl = getWhatsAppCompletedLink(
-      { ...currentAppointment, paymentMethod: paymentMethodSelected, status: 'completada' },
+      updatedApt,
       paymentLabel
     );
     window.open(waCompletedUrl, '_blank');
@@ -1226,7 +1244,10 @@ export default function TechnicianPage() {
 
                       <button
                         type="button"
-                        onClick={() => setShowReportModal(true)}
+                        onClick={() => {
+                          setReportModalApt(currentAppointment);
+                          setShowReportModal(true);
+                        }}
                         className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-2xs cursor-pointer"
                       >
                         <FileText className="w-3.5 h-3.5 text-slate-300" />
@@ -1281,18 +1302,18 @@ export default function TechnicianPage() {
                       <div className="flex items-start justify-between">
                         <div>
                           <span className="text-xs font-mono font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
-                            {apt.scheduledDate} • {apt.timeSlot}
+                            {formatDisplayDate(apt.scheduledDate)} • {apt.timeSlot}
                           </span>
                           <h3 className="text-base font-bold text-slate-900 mt-1.5">
-                            {apt.vehicle.brand} {apt.vehicle.model} ({apt.vehicle.year})
+                            {apt.vehicle?.brand || 'Vehículo'} {apt.vehicle?.model || ''} ({apt.vehicle?.year || ''})
                           </h3>
-                          <p className="text-xs text-slate-600">Cliente: <strong className="text-slate-900">{apt.client.name}</strong> • Tel: {apt.client.phone}</p>
+                          <p className="text-xs text-slate-600">Cliente: <strong className="text-slate-900">{apt.client?.name || 'Cliente'}</strong> • Tel: {apt.client?.phone || 'N/D'}</p>
                         </div>
                         <span className="font-mono text-xs text-slate-400">{apt.folio}</span>
                       </div>
 
                       <div className="bg-slate-50 p-3 rounded-xl text-xs text-slate-700 border border-slate-100">
-                        <strong>Dirección:</strong> {apt.client.address}
+                        <strong>Dirección:</strong> {apt.client?.address || 'Domicilio del cliente'}
                       </div>
                     </div>
                   ))}
@@ -1334,16 +1355,16 @@ export default function TechnicianPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-mono font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
-                            {apt.scheduledDate}
+                            {formatDisplayDate(apt.scheduledDate)}
                           </span>
                           <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200">
                             Garantía Activa
                           </span>
                         </div>
                         <h3 className="text-sm font-bold text-slate-900 mt-1.5">
-                          {apt.vehicle.brand} {apt.vehicle.model} ({apt.vehicle.plates})
+                          {apt.vehicle?.brand || 'Vehículo'} {apt.vehicle?.model || ''} ({apt.vehicle?.plates || 'S/P'})
                         </h3>
-                        <p className="text-xs text-slate-500">Cliente: <strong className="text-slate-800">{apt.client.name}</strong> • {apt.client.phone}</p>
+                        <p className="text-xs text-slate-500">Cliente: <strong className="text-slate-800">{apt.client?.name || 'Cliente'}</strong> • {apt.client?.phone || ''}</p>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -1361,7 +1382,7 @@ export default function TechnicianPage() {
                         <button
                           type="button"
                           onClick={() => {
-                            setIsExecutingAptId(apt.id);
+                            setReportModalApt(apt);
                             setShowReportModal(true);
                           }}
                           className="py-2 px-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
@@ -1380,12 +1401,13 @@ export default function TechnicianPage() {
       </main>
 
       {/* Modal Reporte Técnico */}
-      {showReportModal && currentAppointment && (
+      {showReportModal && (reportModalApt || currentAppointment) && (
         <TechnicalReportModal
-          appointment={currentAppointment}
+          appointment={(reportModalApt || currentAppointment)!}
           isOpen={showReportModal}
           onClose={() => {
             setShowReportModal(false);
+            setReportModalApt(null);
             setIsExecutingAptId(null);
           }}
         />
