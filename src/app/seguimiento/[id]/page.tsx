@@ -29,16 +29,30 @@ import { formatDisplayDate } from '@/lib/dateUtils';
 export default function TrackingPage() {
   const params = useParams();
   const appointmentId = params?.id as string;
-  const { appointments, clientApproveQuote, scheduleSettings, refreshAppState } = useApp();
+  const { appointments, clientApproveQuote, scheduleSettings } = useApp();
   const [showReportModal, setShowReportModal] = useState(false);
+  const [liveStatus, setLiveStatus] = useState<string | null>(null);
 
-  // Sincronización en vivo cada 3 segundos del estatus para el cliente
+  // Sincronización en vivo ultra-ligera (< 200 bytes por petición)
   React.useEffect(() => {
-    const interval = setInterval(() => {
-      refreshAppState();
-    }, 3000);
+    if (!appointmentId) return;
+    const fetchLightStatus = async () => {
+      try {
+        const res = await fetch(`/api/appointment-status?id=${appointmentId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status) {
+            setLiveStatus(data.status);
+          }
+        }
+      } catch (e) {
+        // quiet
+      }
+    };
+
+    const interval = setInterval(fetchLightStatus, 4000);
     return () => clearInterval(interval);
-  }, [refreshAppState]);
+  }, [appointmentId]);
 
   // Quote approval form states (if client approves online)
   const [selectedQuoteOption, setSelectedQuoteOption] = useState<QuoteOptionType>('premium');
@@ -67,16 +81,17 @@ export default function TrackingPage() {
     );
   }
 
-  // 6 Real Lifecycle Stages
-  const isPending = appointment.status === 'solicitud_pendiente';
-  const isQuoted = appointment.status === 'cotizado' && !appointment.selectedOption;
+  // 6 Real Lifecycle Stages (usando el estatus en vivo ultra-ligero)
+  const effectiveStatus = liveStatus || appointment.status;
+  const isPending = effectiveStatus === 'solicitud_pendiente';
+  const isQuoted = effectiveStatus === 'cotizado' && !appointment.selectedOption;
   const isApprovedByClient =
-    appointment.status === 'aprobada_por_cliente' ||
-    (appointment.status === 'cotizado' && !!appointment.selectedOption);
-  const isConfirmed = appointment.status === 'confirmada';
-  const isEnCamino = appointment.status === 'en_camino';
-  const isEnServicio = appointment.status === 'en_servicio';
-  const isCompleted = appointment.status === 'completada';
+    effectiveStatus === 'aprobada_por_cliente' ||
+    (effectiveStatus === 'cotizado' && !!appointment.selectedOption);
+  const isConfirmed = effectiveStatus === 'confirmada';
+  const isEnCamino = effectiveStatus === 'en_camino';
+  const isEnServicio = effectiveStatus === 'en_servicio';
+  const isCompleted = effectiveStatus === 'completada';
 
   // Determine active step index (1 to 6)
   let currentStep = 1;
