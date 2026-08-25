@@ -101,14 +101,15 @@ export default function TechnicianPage() {
 
   const todayAppointments = activeAppointments.filter((a) => {
     const aptDate = a.scheduledDate ? a.scheduledDate.slice(0, 10) : todayStr;
-    const isTodayOrPending = aptDate <= todayStr && a.status !== 'completada';
+    const isToday = aptDate === todayStr;
     const isLive = a.status === 'en_camino' || a.status === 'en_servicio';
-    return isTodayOrPending || isLive;
+    const isPendingPast = aptDate < todayStr && a.status !== 'completada';
+    return isToday || isLive || isPendingPast;
   });
 
   const upcomingAppointments = activeAppointments.filter((a) => {
     const aptDate = a.scheduledDate ? a.scheduledDate.slice(0, 10) : '';
-    return aptDate > todayStr && a.status !== 'en_camino' && a.status !== 'en_servicio' && a.status !== 'completada';
+    return aptDate > todayStr && a.status !== 'en_camino' && a.status !== 'en_servicio';
   });
 
   const displayedRouteAppointments =

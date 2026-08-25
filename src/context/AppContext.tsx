@@ -105,12 +105,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     newSec?: SecuritySettings
   ) => {
     try {
-      const payload = {
-        appointments: newApts || appointments,
-        notifications: newNotifs || notifications,
-        scheduleSettings: newSched || scheduleSettings,
-        securitySettings: newSec || securitySettings,
-      };
+      const payload: Record<string, unknown> = {};
+      if (newApts !== undefined) payload.appointments = newApts;
+      if (newNotifs !== undefined) payload.notifications = newNotifs;
+      if (newSched !== undefined) payload.scheduleSettings = newSched;
+      if (newSec !== undefined) payload.securitySettings = newSec;
+
       await fetch('/api/app-state', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -151,7 +151,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setNotifications((prev) => {
       const updated = [newNotif, ...prev];
-      syncToServer(appointments, updated, scheduleSettings, securitySettings);
+      syncToServer(undefined, updated);
       return updated;
     });
   };
@@ -651,7 +651,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateSecuritySettings = (settings: Partial<SecuritySettings>) => {
     setSecuritySettings((prev) => {
       const updated = { ...prev, ...settings };
-      syncToServer(appointments, notifications, scheduleSettings, updated);
+      syncToServer(undefined, undefined, undefined, updated);
       return updated;
     });
   };
@@ -667,7 +667,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ...prev,
         staffMembers: [newMember, ...prev.staffMembers],
       };
-      syncToServer(appointments, notifications, scheduleSettings, updated);
+      syncToServer(undefined, undefined, undefined, updated);
       return updated;
     });
   };
@@ -678,7 +678,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ...prev,
         staffMembers: prev.staffMembers.map((m) => (m.id === id ? { ...m, ...updates } : m)),
       };
-      syncToServer(appointments, notifications, scheduleSettings, updated);
+      syncToServer(undefined, undefined, undefined, updated);
       return updated;
     });
   };
@@ -689,7 +689,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ...prev,
         staffMembers: prev.staffMembers.filter((m) => m.id !== id),
       };
-      syncToServer(appointments, notifications, scheduleSettings, updated);
+      syncToServer(undefined, undefined, undefined, updated);
       return updated;
     });
   };
