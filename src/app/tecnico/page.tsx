@@ -230,7 +230,7 @@ export default function TechnicianPage() {
     saveServiceRecord(currentAppointment.id, {
       arrivalTime,
       startedAt: new Date().toISOString(),
-      initialKm: Number(initialKmInput) || currentAppointment.vehicle.currentKm || 42350,
+      initialKm: Number(initialKmInput) || currentAppointment.vehicle?.currentKm || 42350,
       evidencePhotos: record?.evidencePhotos || [],
       installedParts: record?.installedParts && record.installedParts.length > 0 ? record.installedParts : defaultParts,
       mechanicalObservations: observationsInput,
@@ -260,7 +260,7 @@ export default function TechnicianPage() {
     saveServiceRecord(currentAppointment.id, {
       mechanicalObservations: observationsInput || record?.mechanicalObservations || 'Servicio de afinación mayor completado satisfactoriamente.',
       futureRecommendations: recommendationsInput || record?.futureRecommendations || 'Próximo servicio en 6 meses o 10,000 KM.',
-      initialKm: Number(initialKmInput) || record?.initialKm || currentAppointment.vehicle.currentKm || 0,
+      initialKm: Number(initialKmInput) || record?.initialKm || currentAppointment.vehicle?.currentKm || 0,
       evidencePhotos: record?.evidencePhotos || [],
       installedParts: record?.installedParts || [],
     });
@@ -278,7 +278,7 @@ export default function TechnicianPage() {
 
     let signatureToSave = signatureData || record?.clientSignatureUrl;
     if (!signatureToSave) {
-      signatureToSave = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="120" viewBox="0 0 320 120"><rect width="320" height="120" fill="%23F8FAFC" rx="10"/><path d="M 30 70 Q 70 30 110 65 T 190 60 T 270 50" fill="none" stroke="%2308101E" stroke-width="3" stroke-linecap="round"/><text x="30" y="95" font-family="sans-serif" font-size="12" font-weight="bold" fill="%2308101E">${encodeURIComponent(currentAppointment.client.name)}</text><text x="30" y="110" font-family="sans-serif" font-size="9" fill="%23666666">Firma de Satisfacción • Afinaciones de Autor</text></svg>`;
+      signatureToSave = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="120" viewBox="0 0 320 120"><rect width="320" height="120" fill="%23F8FAFC" rx="10"/><path d="M 30 70 Q 70 30 110 65 T 190 60 T 270 50" fill="none" stroke="%2308101E" stroke-width="3" stroke-linecap="round"/><text x="30" y="95" font-family="sans-serif" font-size="12" font-weight="bold" fill="%2308101E">${encodeURIComponent(currentAppointment.client?.name || 'Cliente')}</text><text x="30" y="110" font-family="sans-serif" font-size="9" fill="%23666666">Firma de Satisfacción • Afinaciones de Autor</text></svg>`;
     }
 
     const methodLabels: Record<string, string> = {
@@ -293,11 +293,11 @@ export default function TechnicianPage() {
       currentAppointment.id,
       {
         clientSignatureUrl: signatureToSave,
-        signedByName: currentAppointment.client.name,
+        signedByName: currentAppointment.client?.name || 'Cliente',
         completedAt: new Date().toISOString(),
         mechanicalObservations: observationsInput || record?.mechanicalObservations || 'Servicio de afinación mayor a domicilio completado satisfactoriamente.',
         futureRecommendations: recommendationsInput || record?.futureRecommendations || 'Realizar siguiente servicio en 6 meses o 10,000 KM.',
-        initialKm: Number(initialKmInput) || record?.initialKm || currentAppointment.vehicle.currentKm || 0,
+        initialKm: Number(initialKmInput) || record?.initialKm || currentAppointment.vehicle?.currentKm || 0,
       },
       {
         paymentMethod: paymentMethodSelected,
@@ -891,7 +891,7 @@ export default function TechnicianPage() {
                           ¿Llegaste al Domicilio del Cliente?
                         </h3>
                         <p className="text-xs text-slate-600">
-                          {currentAppointment.client.address}
+                          {currentAppointment.client?.address || 'Domicilio del cliente'}
                         </p>
                       </div>
                     </div>
@@ -1073,7 +1073,7 @@ export default function TechnicianPage() {
                             Entrega del Vehículo, Firma de Satisfacción & Cobro
                           </h3>
                           <p className="text-xs text-slate-600 leading-relaxed">
-                            Muestra las piezas sustituidas y el estado del motor a <strong>{currentAppointment.client.name}</strong>. Solicita su firma de conformidad y confirma el método de cobro acordado.
+                            Muestra las piezas sustituidas y el estado del motor a <strong>{currentAppointment.client?.name || 'Cliente'}</strong>. Solicita su firma de conformidad y confirma el método de cobro acordado.
                           </p>
                         </div>
 
@@ -1167,7 +1167,7 @@ export default function TechnicianPage() {
                           <SignaturePad
                             onSave={(sig) => setSignatureData(sig)}
                             existingSignature={record?.clientSignatureUrl}
-                            clientName={currentAppointment.client.name}
+                            clientName={currentAppointment.client?.name || 'Cliente'}
                           />
                         </div>
 
@@ -1206,7 +1206,7 @@ export default function TechnicianPage() {
                         ¡Servicio Finalizado y Certificado!
                       </h3>
                       <p className="text-xs text-emerald-800">
-                        Póliza de garantía y Reporte Técnico digital emitidos para {currentAppointment.client.name}.
+                        Póliza de garantía y Reporte Técnico digital emitidos para {currentAppointment.client?.name || 'Cliente'}.
                       </p>
                     </div>
 

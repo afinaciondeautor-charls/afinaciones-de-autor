@@ -36,15 +36,19 @@ export default function EvidenceManager({
     if (photos && Array.isArray(photos)) {
       setInternalPhotos((prev) => {
         const map = new Map<string, EvidencePhoto>();
-        prev.forEach((p) => map.set(p.category, p));
+        (prev || []).forEach((p) => {
+          if (p && p.category) map.set(p.category, p);
+        });
         photos.forEach((p) => {
-          const existing = map.get(p.category);
-          map.set(p.category, {
-            ...(existing || {}),
-            ...p,
-            beforePhotoUrl: p.beforePhotoUrl || existing?.beforePhotoUrl,
-            afterPhotoUrl: p.afterPhotoUrl || existing?.afterPhotoUrl,
-          });
+          if (p && p.category) {
+            const existing = map.get(p.category);
+            map.set(p.category, {
+              ...(existing || {}),
+              ...p,
+              beforePhotoUrl: p.beforePhotoUrl || existing?.beforePhotoUrl,
+              afterPhotoUrl: p.afterPhotoUrl || existing?.afterPhotoUrl,
+            });
+          }
         });
         return Array.from(map.values());
       });
@@ -144,8 +148,8 @@ export default function EvidenceManager({
     const catConfig = categoriesToRender.find((c) => c.category === category);
     const itemLabel = catConfig?.label || category;
 
-    const existingIndex = internalPhotos.findIndex(
-      (p) => p.category === category || (p.label && p.label.toLowerCase() === itemLabel.toLowerCase())
+    const existingIndex = (internalPhotos || []).findIndex(
+      (p) => p && (p.category === category || ((p.label || '').toLowerCase() === (itemLabel || '').toLowerCase()))
     );
     let updatedList = [...internalPhotos];
 
@@ -209,8 +213,8 @@ export default function EvidenceManager({
     const catConfig = categoriesToRender.find((c) => c.category === category);
     const itemLabel = catConfig?.label || category;
 
-    const existingIndex = internalPhotos.findIndex(
-      (p) => p.category === category || (p.label && p.label.toLowerCase() === itemLabel.toLowerCase())
+    const existingIndex = (internalPhotos || []).findIndex(
+      (p) => p && (p.category === category || ((p.label || '').toLowerCase() === (itemLabel || '').toLowerCase()))
     );
     if (existingIndex < 0) return;
 
@@ -243,8 +247,8 @@ export default function EvidenceManager({
       {/* Grid de Refacciones Cotizadas */}
       <div className="space-y-4">
         {categoriesToRender.map((cat) => {
-          const current = internalPhotos.find(
-            (p) => p.category === cat.category || (p.label && p.label.toLowerCase() === cat.label.toLowerCase())
+          const current = (internalPhotos || []).find(
+            (p) => p && (p.category === cat.category || ((p.label || '').toLowerCase() === (cat.label || '').toLowerCase()))
           );
           const hasBefore = !!current?.beforePhotoUrl;
           const hasAfter = !!current?.afterPhotoUrl;
