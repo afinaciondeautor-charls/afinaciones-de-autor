@@ -117,20 +117,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Initial load from server API
   useEffect(() => {
     const fetchInitial = async () => {
-      const sanitizeAppointments = (list: Appointment[]) => {
-        return list.map((apt) => {
-          if (apt.status === 'confirmada') {
-            return { ...apt, status: 'aprobada_por_cliente' as AppointmentStatus };
-          }
-          return apt;
-        });
-      };
-
       try {
         const res = await fetch('/api/app-state');
         if (res.ok) {
           const data = await res.json();
-          if (data.appointments) setAppointments(sanitizeAppointments(data.appointments));
+          if (data.appointments) setAppointments(data.appointments);
           if (data.notifications) setNotifications(data.notifications);
           if (data.scheduleSettings) setScheduleSettings(data.scheduleSettings);
           if (data.securitySettings) setSecuritySettings(data.securitySettings);
@@ -140,7 +131,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (parsed.appointments) setAppointments(sanitizeAppointments(parsed.appointments));
+          if (parsed.appointments) setAppointments(parsed.appointments);
           if (parsed.notifications) setNotifications(parsed.notifications);
           if (parsed.scheduleSettings) setScheduleSettings(parsed.scheduleSettings);
           if (parsed.securitySettings) setSecuritySettings(parsed.securitySettings);
