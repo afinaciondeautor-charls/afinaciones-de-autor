@@ -15,9 +15,8 @@ const transporter = nodemailer.createTransport({
 });
 
 function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return 'https://afinaciones-de-autor.vercel.app';
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, '');
+  return 'https://afinaciones-de-autor-three.vercel.app';
 }
 
 /**

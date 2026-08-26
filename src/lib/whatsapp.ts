@@ -20,12 +20,24 @@ export function formatWhatsAppPhone(phone?: string): string {
  * Obtiene la URL base de la aplicación para enlaces en mensajes
  */
 export function getAppBaseUrl(): string {
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, '');
   }
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return 'https://afinaciones-de-autor.vercel.app';
+
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin;
+    // Si estamos en localhost para desarrollo local, mantener localhost
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return origin;
+    }
+    // Si es un preview URL de Vercel con hash interno, redirigir al dominio oficial de producción
+    if (origin.includes('vercel.app')) {
+      return 'https://afinaciones-de-autor-three.vercel.app';
+    }
+    return origin;
+  }
+
+  return 'https://afinaciones-de-autor-three.vercel.app';
 }
 
 /**
