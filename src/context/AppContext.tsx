@@ -86,6 +86,7 @@ interface AppContextType {
   refreshAppState: () => Promise<void>;
   deleteAppointment: (appointmentId: string) => Promise<void>;
   clearAllAppointments: () => Promise<void>;
+  isLoaded: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -812,6 +813,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         refreshAppState,
         deleteAppointment,
         clearAllAppointments,
+        isLoaded,
       }}
     >
       {children}

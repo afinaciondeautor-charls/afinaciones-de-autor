@@ -29,7 +29,7 @@ import { formatDisplayDate } from '@/lib/dateUtils';
 export default function TrackingPage() {
   const params = useParams();
   const appointmentId = params?.id as string;
-  const { appointments, clientApproveQuote, scheduleSettings } = useApp();
+  const { appointments, clientApproveQuote, scheduleSettings, isLoaded } = useApp();
   const [showReportModal, setShowReportModal] = useState(false);
   const [liveStatus, setLiveStatus] = useState<string | null>(null);
 
@@ -63,13 +63,35 @@ export default function TrackingPage() {
 
   const appointment = appointments.find((a) => a.id === appointmentId);
 
+  // Pantalla de carga mientras se sincroniza el estado inicial del servidor
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-[#08101E] flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-amber-400 text-slate-950 font-black text-2xl flex items-center justify-center shadow-lg animate-pulse">
+          AA
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-base font-black text-white tracking-wide">
+            AFINACIONES DE AUTOR
+          </h2>
+          <p className="text-xs text-amber-400 font-mono font-bold animate-pulse">
+            Cargando estatus de tu servicio en vivo...
+          </p>
+        </div>
+        <div className="w-48 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <div className="w-full h-full bg-amber-400 animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
   if (!appointment) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 text-center text-slate-600 space-y-4">
         <AlertCircle className="w-12 h-12 text-rose-500" />
         <h2 className="text-xl font-bold text-slate-900">Cita no encontrada</h2>
         <p className="text-sm text-slate-500 max-w-sm">
-          No pudimos localizar la cita con el folio proporcionado. Revisa tu enlace o regresa al inicio.
+          No pudimos localizar la cita con el identificador proporcionado. Revisa tu enlace o regresa al inicio.
         </p>
         <Link
           href="/"
